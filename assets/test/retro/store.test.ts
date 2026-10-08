@@ -64,6 +64,23 @@ describe("selectors", () => {
     expect(groupTitle({ label: null, ideas: [idea({ id: 9 }), idea({ id: 8 })] })).toBeNull()
   })
 
+  it("breaks vote ties by group size, pushing lone ideas below groups", () => {
+    const ideas = [
+      idea({ id: 1, group_id: 20 }),
+      idea({ id: 2, group_id: 21 }),
+      idea({ id: 3, group_id: 21 }),
+      idea({ id: 4, group_id: 21 }),
+      idea({ id: 5, group_id: 22 }),
+      idea({ id: 6, group_id: 22 }),
+      idea({ id: 7, group_id: 23 }),
+    ]
+    const groups = [group(20), group(21, "Big"), group(22, "Pair"), group(23)]
+    // 1 vote each, except the lone idea in group 23, which has 2.
+    const votes = [vote(1, 1, 20), vote(2, 1, 21), vote(3, 1, 22), vote(4, 2, 23), vote(5, 2, 23)]
+    const ranked = selectRankedGroups(setup(snapshot({ ideas, groups, votes })).getState())
+    expect(ranked.map((g) => g.id)).toEqual([23, 21, 22, 20])
+  })
+
   it("is memoised", () => {
     const state = setup(snap).getState()
     expect(selectGroupsWithIdeas(state)).toBe(selectGroupsWithIdeas(state))
