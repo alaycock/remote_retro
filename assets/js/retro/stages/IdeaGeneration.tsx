@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { CATEGORY_META } from "../categories"
+import { CategoryIcon } from "../components/CategoryIcon"
 import { IdeaCard } from "../components/IdeaCard"
 import { IdeaForm } from "../components/IdeaForm"
 import { useIsDesktop } from "../hooks/useMediaQuery"
@@ -43,7 +44,7 @@ function IdeaColumn({ category, ideas, showHeading = true }: { category: Categor
         id={headingId}
         className={`flex items-center gap-2 px-1 pt-1 pb-2 font-semibold ${showHeading ? "" : "sr-only"}`}
       >
-        <span aria-hidden="true">{meta.emoji}</span>
+        <CategoryIcon category={category} />
         {meta.label}
         <span className="badge badge-sm badge-ghost ml-auto">{ideas.length}</span>
       </h2>
@@ -96,7 +97,7 @@ export function IdeaGeneration() {
                 className={`tab flex-1 gap-1 ${c === category ? "tab-active" : ""}`}
                 onClick={() => setCategory(c)}
               >
-                <span aria-hidden="true">{CATEGORY_META[c].emoji}</span>
+                <CategoryIcon category={c} size="sm" />
                 {CATEGORY_META[c].label}
                 <span className="text-xs opacity-60">{byCategory[c]?.length ?? 0}</span>
               </button>

@@ -3,6 +3,7 @@ import { Board } from "./board/Board"
 import { ActionItems } from "./stages/ActionItems"
 import { Closed } from "./stages/Closed"
 import { IdeaGeneration } from "./stages/IdeaGeneration"
+import { Labeling } from "./stages/Labeling"
 import { Lobby } from "./stages/Lobby"
 import { PrimeDirective } from "./stages/PrimeDirective"
 import { Voting } from "./stages/Voting"
@@ -19,12 +20,13 @@ export interface StageConfig {
   help: ((format: Format) => ReactNode) | null
   /** Label on the facilitator's Next button while in this stage. */
   nextCopy: string | null
-  /** Confirmation prompt before advancing from this stage. */
-  nextConfirm: string
   /** Label on the facilitator's Back button while in this stage. */
   prevCopy: string | null
-  /** Confirmation prompt before going back from this stage. */
-  prevConfirm: string
+  /**
+   * Stage moves are instant (there's always a Back button). Only a move back that can
+   * lose work asks first; this is that warning.
+   */
+  prevWarning?: string
   /** Stages that need the full viewport (no centered max-width container). */
   fullBleed?: boolean
 }
@@ -53,7 +55,6 @@ const IDEA_GENERATION_GUIDANCE: Record<Format, string[]> = {
 }
 
 const GroupingBoard = () => <Board mode="grouping" />
-const LabelingBoard = () => <Board mode="labeling" />
 
 export const STAGE_CONFIGS: Record<Stage, StageConfig> = {
   lobby: {
@@ -63,9 +64,7 @@ export const STAGE_CONFIGS: Record<Stage, StageConfig> = {
     component: Lobby,
     help: null,
     nextCopy: "Begin retro",
-    nextConfirm: "Has everyone arrived?",
     prevCopy: null,
-    prevConfirm: "",
   },
   "prime-directive": {
     key: "prime-directive",
@@ -88,9 +87,7 @@ export const STAGE_CONFIGS: Record<Stage, StageConfig> = {
       </>
     ),
     nextCopy: "Idea generation",
-    nextConfirm: "Is everyone ready to start sharing ideas?",
     prevCopy: "Back",
-    prevConfirm: "Return to the lobby?",
   },
   "idea-generation": {
     key: "idea-generation",
@@ -99,9 +96,7 @@ export const STAGE_CONFIGS: Record<Stage, StageConfig> = {
     component: IdeaGeneration,
     help: (format) => <Guidance items={IDEA_GENERATION_GUIDANCE[format]} />,
     nextCopy: "Grouping",
-    nextConfirm: "Has everyone finished submitting ideas? New ideas can't be added after this stage.",
     prevCopy: "Back",
-    prevConfirm: "Return to the Prime Directive?",
   },
   grouping: {
     key: "grouping",
@@ -119,16 +114,14 @@ export const STAGE_CONFIGS: Record<Stage, StageConfig> = {
       />
     ),
     nextCopy: "Labeling",
-    nextConfirm: "Has your team finished grouping the ideas?",
     prevCopy: "Back",
-    prevConfirm: "Return to idea generation? Card positions and groups are kept.",
     fullBleed: true,
   },
   labeling: {
     key: "labeling",
     title: "Labeling",
     short: "Labeling",
-    component: LabelingBoard,
+    component: Labeling,
     help: () => (
       <Guidance
         items={[
@@ -139,9 +132,7 @@ export const STAGE_CONFIGS: Record<Stage, StageConfig> = {
       />
     ),
     nextCopy: "Voting",
-    nextConfirm: "Is your team happy with the labels?",
     prevCopy: "Back",
-    prevConfirm: "Return to grouping?",
     fullBleed: true,
   },
   voting: {
@@ -161,10 +152,8 @@ export const STAGE_CONFIGS: Record<Stage, StageConfig> = {
       />
     ),
     nextCopy: "Action items",
-    nextConfirm: "Is everyone happy with their votes? Totals will be revealed.",
     prevCopy: "Back",
-    prevConfirm:
-      "Return to labeling? Votes are kept, but votes on any group that gets split or merged may be lost.",
+    prevWarning: "Votes are kept, but votes on any group that gets split or merged while labeling will be removed.",
   },
   "action-items": {
     key: "action-items",
@@ -182,9 +171,7 @@ export const STAGE_CONFIGS: Record<Stage, StageConfig> = {
       />
     ),
     nextCopy: "Close retro",
-    nextConfirm: "Close this retro? You can re-open it later if you need to.",
     prevCopy: "Back",
-    prevConfirm: "Return to voting? Vote totals will be hidden again.",
   },
   closed: {
     key: "closed",
@@ -201,9 +188,7 @@ export const STAGE_CONFIGS: Record<Stage, StageConfig> = {
       </p>
     ),
     nextCopy: null,
-    nextConfirm: "",
     prevCopy: "Re-open retro",
-    prevConfirm: "Re-open this retro? It will return to the action items stage.",
   },
 }
 

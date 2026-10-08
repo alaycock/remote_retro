@@ -6,16 +6,19 @@ import { changeStage } from "../store/thunks"
 import type { Stage } from "../types"
 import { ConfirmDialog } from "./ConfirmDialog"
 
-type Direction = "next" | "prev"
-
-/** Facilitator Back / Next (or Re-open) buttons with a confirmation dialog. */
+/**
+ * Facilitator Back / Next (or Re-open) buttons. Moves are immediate because Back is
+ * always available; only a move that can lose work (see `prevWarning`) confirms first.
+ */
 export function StageControls() {
   const dispatch = useAppDispatch()
   const stage = useAppSelector(selectStage)
   const isFacilitator = useAppSelector(selectIsFacilitator)
   const aiStatus = useAppSelector(selectAiStatus)
   const allVotesIn = useAppSelector(selectAllVotesIn)
-  const [pending, setPending] = useState<Direction | null>(null)
+  // The stage the warning was raised from; it is ignored once the stage changes so a
+  // stale dialog can never render copy for a different stage.
+  const [warningFrom, setWarningFrom] = useState<Stage | null>(null)
   const [busy, setBusy] = useState(false)
 
   if (!stage || !isFacilitator) return null
@@ -25,18 +28,19 @@ export function StageControls() {
   const prev = prevStage(stage)
   const disabled = aiStatus != null || busy
   const isReopen = stage === "closed"
-  const target: Stage | null = pending === "next" ? next : pending === "prev" ? prev : null
 
-  const confirm = async () => {
+  const go = async (target: Stage | null) => {
+    setWarningFrom(null)
     if (!target) return
     setBusy(true)
     try {
       await dispatch(changeStage(target))
     } finally {
       setBusy(false)
-      setPending(null)
     }
   }
+
+  const goBack = () => (config.prevWarning ? setWarningFrom(stage) : go(prev))
 
   return (
     <div className="flex items-center gap-2">
@@ -45,50 +49,39 @@ export function StageControls() {
           type="button"
           className={`btn btn-sm ${isReopen ? "btn-primary" : "btn-ghost"}`}
           disabled={disabled}
-          onClick={() => setPending("prev")}
+          onClick={goBack}
           title={isReopen ? undefined : `Back to ${STAGE_CONFIGS[prev].title.toLowerCase()}`}
         >
           <span className={`${isReopen ? "hero-arrow-uturn-left" : "hero-arrow-left"} size-4`} aria-hidden="true" />
           {config.prevCopy}
         </button>
       )}
-      {next && config.nextCopy && (
-        <div className="indicator">
-          {stage === "voting" && allVotesIn && (
-            <span className="indicator-item badge badge-success badge-xs" title="All votes in!">
-              <span className="sr-only">All votes in!</span>
-            </span>
-          )}
-          <button
-            type="button"
-            className="btn btn-sm btn-primary"
-            disabled={disabled}
-            onClick={() => setPending("next")}
-          >
-            {config.nextCopy}
-            <span className="hero-arrow-right size-4" aria-hidden="true" />
-          </button>
-        </div>
+      {stage === "voting" && allVotesIn && (
+        <span className="badge badge-success badge-soft gap-1 font-medium" role="status">
+          <span className="hero-check-circle-micro size-4" aria-hidden="true" />
+          All votes in
+        </span>
       )}
-      <ConfirmDialog
-        open={pending != null}
-        title={
-          pending === "prev"
-            ? isReopen
-              ? "Re-open retro"
-              : `Back to ${prev ? STAGE_CONFIGS[prev].title.toLowerCase() : ""}`
-            : next === "closed"
-              ? "Close retro"
-              : `Continue to ${next ? STAGE_CONFIGS[next].title.toLowerCase() : ""}`
-        }
-        confirmLabel={pending === "prev" ? (isReopen ? "Re-open" : "Go back") : "Continue"}
-        tone={pending === "prev" && !isReopen ? "warning" : "primary"}
-        busy={busy}
-        onConfirm={confirm}
-        onCancel={() => setPending(null)}
-      >
-        {pending === "prev" ? config.prevConfirm : config.nextConfirm}
-      </ConfirmDialog>
+      {next && config.nextCopy && (
+        <button type="button" className="btn btn-sm btn-primary" disabled={disabled} onClick={() => go(next)}>
+          {busy && <span className="loading loading-spinner loading-xs" aria-hidden="true" />}
+          {config.nextCopy}
+          <span className="hero-arrow-right size-4" aria-hidden="true" />
+        </button>
+      )}
+      {prev && config.prevWarning && (
+        <ConfirmDialog
+          open={warningFrom === stage}
+          title={`Back to ${STAGE_CONFIGS[prev].title.toLowerCase()}?`}
+          confirmLabel="Go back"
+          tone="warning"
+          busy={busy}
+          onConfirm={() => go(prev)}
+          onCancel={() => setWarningFrom(null)}
+        >
+          {config.prevWarning}
+        </ConfirmDialog>
+      )}
     </div>
   )
 }

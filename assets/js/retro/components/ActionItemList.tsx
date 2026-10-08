@@ -7,6 +7,7 @@ import {
   selectUsersById,
 } from "../store/selectors"
 import { deleteIdea, updateIdea } from "../store/thunks"
+import { Avatar } from "./Avatar"
 import { IdeaCard } from "./IdeaCard"
 
 export function ActionItemList({ editable }: { editable: boolean }) {
@@ -35,8 +36,12 @@ export function ActionItemList({ editable }: { editable: boolean }) {
             onDelete={() => dispatch(deleteIdea(item.id))}
             meta={
               canEdit ? (
-                <label className="flex items-center gap-1">
-                  <span className="hero-user-micro size-3.5" aria-hidden="true" />
+                <label className="flex items-center gap-1.5">
+                  {assignee ? (
+                    <Avatar user={assignee} size="xs" />
+                  ) : (
+                    <span className="hero-user-micro size-3.5" aria-hidden="true" />
+                  )}
                   <span className="sr-only">Owner</span>
                   <select
                     className="select select-ghost select-xs max-w-40"
@@ -52,8 +57,12 @@ export function ActionItemList({ editable }: { editable: boolean }) {
                   </select>
                 </label>
               ) : (
-                <span className="flex items-center gap-1">
-                  <span className="hero-user-micro size-3.5" aria-hidden="true" />
+                <span className="flex items-center gap-1.5">
+                  {assignee ? (
+                    <Avatar user={assignee} size="xs" />
+                  ) : (
+                    <span className="hero-user-micro size-3.5" aria-hidden="true" />
+                  )}
                   {assignee?.name ?? "Unassigned"}
                 </span>
               )

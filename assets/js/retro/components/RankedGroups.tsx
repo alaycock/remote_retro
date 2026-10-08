@@ -10,18 +10,16 @@ export function RankedGroups() {
   }
   return (
     <ol className="flex flex-col gap-2">
-      {groups.map((group, i) => (
+      {groups.map((group) => (
         <li key={group.id}>
           <GroupCard
             compact
             group={group}
             badge={
-              <span className="badge badge-ghost badge-sm shrink-0 tabular-nums" aria-label={`Rank ${i + 1}`}>
-                #{i + 1}
-              </span>
-            }
-            footer={
-              <span className={`badge badge-sm ${group.voteCount > 0 ? "badge-primary" : "badge-ghost"}`}>
+              <span
+                className={`badge badge-sm shrink-0 gap-1 tabular-nums ${group.voteCount > 0 ? "badge-primary" : "badge-ghost"}`}
+              >
+                <span className="hero-hand-raised-micro size-3.5" aria-hidden="true" />
                 {group.voteCount} {group.voteCount === 1 ? "vote" : "votes"}
               </span>
             }

@@ -20,7 +20,7 @@ export function StageStepper({ stage }: { stage: Stage }) {
               {i > 0 && (
                 <span
                   aria-hidden="true"
-                  className={`h-px w-3 xl:w-5 ${i <= index ? "bg-primary" : "bg-base-300"}`}
+                  className={`h-px w-3 xl:w-5 ${i < index ? "bg-success/50" : i === index ? "bg-primary" : "bg-base-300"}`}
                 />
               )}
               <span
@@ -28,13 +28,18 @@ export function StageStepper({ stage }: { stage: Stage }) {
                 className={[
                   "rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap transition-colors",
                   state === "current" && "bg-primary text-primary-content shadow-sm",
-                  state === "done" && "text-base-content/70",
+                  state === "done" && "bg-success/15 text-success",
                   state === "upcoming" && "text-base-content/40",
                 ]
                   .filter(Boolean)
                   .join(" ")}
               >
-                {state === "done" && <span className="hero-check-micro mr-0.5 size-3.5 align-[-2px]" aria-hidden="true" />}
+                {state === "done" && (
+                  <>
+                    <span className="hero-check-micro mr-0.5 size-3.5 align-[-2px]" aria-hidden="true" />
+                    <span className="sr-only">Completed: </span>
+                  </>
+                )}
                 {config.short}
               </span>
             </li>

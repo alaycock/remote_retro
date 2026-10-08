@@ -3,19 +3,25 @@ import { useAppDispatch, useAppSelector } from "../store/hooks"
 import { selectAllUsers } from "../store/selectors"
 import { createIdea } from "../store/thunks"
 import { CharCount } from "./CharCount"
+import { ENTER_HINT, submitOnEnter } from "./keyboard"
 import { validateIdeaBody } from "./validation"
 
 export function ActionItemForm() {
   const dispatch = useAppDispatch()
   const users = useAppSelector(selectAllUsers)
   const [body, setBody] = useState("")
-  const [assigneeId, setAssigneeId] = useState("")
+  const [chosenAssigneeId, setAssigneeId] = useState("")
+  // Default to the first participant; keep an explicit choice while that person is still listed.
+  const assigneeId = users.some((u) => String(u.id) === chosenAssigneeId)
+    ? chosenAssigneeId
+    : String(users[0]?.id ?? "")
   const [error, setError] = useState<string | null>(null)
   const bodyId = useId()
   const assigneeFieldId = useId()
+  const hintId = useId()
 
-  const submit = async (e: FormEvent) => {
-    e.preventDefault()
+  const submit = async (e?: FormEvent) => {
+    e?.preventDefault()
     const problem = validateIdeaBody(body) ?? (assigneeId ? null : "Choose who owns this action item.")
     if (problem) {
       setError(problem)
@@ -48,8 +54,13 @@ export function ActionItemForm() {
               setBody(e.target.value)
               if (error) setError(null)
             }}
+            onKeyDown={(e) => submitOnEnter(e, () => void submit())}
+            aria-describedby={hintId}
           />
-          <div className="mt-1 flex justify-end">
+          <div className="mt-1 flex items-center justify-between gap-2">
+            <span id={hintId} className="text-xs text-base-content/50">
+              {ENTER_HINT}
+            </span>
             <CharCount value={body} />
           </div>
         </div>
@@ -66,9 +77,6 @@ export function ActionItemForm() {
               if (error) setError(null)
             }}
           >
-            <option value="" disabled>
-              Choose an owner
-            </option>
             {users.map((user) => (
               <option key={user.id} value={user.id}>
                 {user.name}

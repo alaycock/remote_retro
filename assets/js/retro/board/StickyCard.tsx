@@ -1,8 +1,9 @@
+import { CategoryIcon } from "../components/CategoryIcon"
 import { memo, useEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent, type PointerEvent } from "react"
 import { CARD_H, CARD_W } from "../constants"
 import { useAppDispatch } from "../store/hooks"
 import { ideaMovedLocally } from "../store/slices"
-import type { Category, User } from "../types"
+import type { User } from "../types"
 import type { PlacedIdea } from "./selectors"
 import type { RemoteDragStore } from "./remoteDrags"
 import { moveIdea, pushDrag } from "./thunks"
@@ -11,16 +12,6 @@ import { throttle, type Throttled } from "./throttle"
 export const DRAG_PUSH_MS = 50
 export const NUDGE = 10
 const DRAG_THRESHOLD_PX = 3
-
-const CATEGORY_ICON: Record<Category, string> = {
-  happy: "hero-face-smile",
-  sad: "hero-face-frown",
-  confused: "hero-question-mark-circle",
-  start: "hero-play",
-  stop: "hero-stop",
-  continue: "hero-arrow-path",
-  "action-item": "hero-check-circle",
-}
 
 /** Step the font down for longer text so most ideas fit the fixed card. */
 export function fontSizeFor(body: string): number {
@@ -194,7 +185,7 @@ export const StickyCard = memo(function StickyCard({ idea, color, scale, disable
       }}
     >
       <div className="mb-1 flex items-center gap-1 text-xs text-base-content/60">
-        <span className={`${CATEGORY_ICON[idea.category]} size-4`} aria-hidden="true" />
+        <CategoryIcon category={idea.category} size="sm" labelled />
         <span className="truncate">{author?.given_name ?? ""}</span>
         {dragger && (
           <span className="ml-auto flex items-center gap-1 text-accent" aria-label={`${dragger.given_name} is moving this`}>

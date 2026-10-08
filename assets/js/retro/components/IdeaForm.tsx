@@ -1,5 +1,6 @@
 import { useId, useState, type FormEvent, type KeyboardEvent } from "react"
 import { CATEGORY_META } from "../categories"
+import { submitOnEnter } from "./keyboard"
 import { useThrottle } from "../hooks/useThrottle"
 import { useAppDispatch } from "../store/hooks"
 import { createIdea, sendTyping } from "../store/thunks"
@@ -39,12 +40,7 @@ export function IdeaForm({ categories, category, onCategoryChange }: IdeaFormPro
     if (createIdea.rejected.match(result)) setBody((current) => current || submitted)
   }
 
-  const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
-      e.preventDefault()
-      void submit()
-    }
-  }
+  const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => submitOnEnter(e, () => void submit())
 
   return (
     <form onSubmit={submit} noValidate className="card bg-base-100 shadow-sm" aria-label="Submit an idea">
