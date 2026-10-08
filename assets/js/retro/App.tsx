@@ -24,7 +24,7 @@ export function App() {
   const [helpPending, setHelpPending] = useState(false)
   useEffect(() => {
     if (!retro) return
-    if (previousStage.current && previousStage.current !== retro.stage && STAGE_CONFIGS[retro.stage].help) {
+    if (previousStage.current && previousStage.current !== retro.stage && STAGE_CONFIGS[retro.stage]?.help) {
       setHelpPending(true)
     }
     previousStage.current = retro.stage
@@ -39,6 +39,18 @@ export function App() {
   if (!retro) return null
 
   const config = STAGE_CONFIGS[retro.stage]
+  // A stage this client doesn't know (e.g. a newer server, or data from a removed stage).
+  if (!config) {
+    return (
+      <div role="alert" className="grid h-dvh place-items-center bg-base-200 p-6 text-center">
+        <div className="space-y-3">
+          <p className="font-semibold">This retro is in a stage this page doesn't recognise ("{retro.stage}").</p>
+          <p className="text-sm text-base-content/70">Try refreshing. If it keeps happening, the app may need an update.</p>
+          <a href="/retros" className="btn btn-sm">Back to your retros</a>
+        </div>
+      </div>
+    )
+  }
   const StageComponent = config.component
 
   return (
