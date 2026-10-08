@@ -11,10 +11,6 @@
       <a href={~p"/auth/google"} class="btn btn-primary btn-lg">
         <.icon name="hero-arrow-right-end-on-rectangle" class="size-5" /> Sign in with Google
       </a>
-      <a href={~p"/faq"} class="btn btn-ghost btn-lg">Learn more</a>
-      <a href={Layouts.github_url()} class="btn btn-ghost btn-lg">
-        <Layouts.github_icon class="size-5" /> GitHub
-      </a>
     </div>
   </section>
 
@@ -42,27 +38,15 @@
     </div>
   </section>
 
-  <section class="mt-20">
-    <h2 class="text-center text-2xl font-semibold">How a retro flows</h2>
-    <ol class="mt-8 grid gap-3 sm:grid-cols-4">
+  <section class="mt-16 text-center" aria-labelledby="flow-heading">
+    <h2 id="flow-heading" class="text-lg font-semibold">How a retro flows</h2>
+    <ol class="mt-4 flex flex-wrap items-center justify-center gap-x-2 gap-y-2 text-sm text-base-content/80">
       <li
-        :for={
-          {{title, body}, step} <-
-            Enum.with_index(
-              [
-                {"Set the stage", "Gather in the lobby and agree to the Prime Directive."},
-                {"Generate ideas", "Happy / Sad / Confused or Start / Stop / Continue."},
-                {"Group, label, vote", "Cluster related ideas, name them, spend three votes."},
-                {"Act", "Discuss the top topics and assign action items."}
-              ],
-              1
-            )
-        }
-        class="rounded-box border border-base-300 p-4"
+        :for={{step, i} <- Enum.with_index(~w(Share Group Vote Act))}
+        class="flex items-center gap-2"
       >
-        <span class="text-sm font-semibold text-primary">Step {step}</span>
-        <h3 class="mt-1 font-semibold">{title}</h3>
-        <p class="mt-1 text-sm text-base-content/70">{body}</p>
+        <.icon :if={i > 0} name="hero-arrow-long-right" class="size-4 text-base-content/40" />
+        <span class="rounded-full bg-base-200 px-3 py-1 font-medium">{step}</span>
       </li>
     </ol>
   </section>
