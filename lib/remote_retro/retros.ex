@@ -103,9 +103,13 @@ defmodule RemoteRetro.Retros do
       end)
 
     with {:ok, {from, retro}} <- result do
-      Broadcast.snapshot(retro.id)
+      # Start the AI first: it marks the retro busy synchronously, so the snapshot
+      # below already carries `ai_status` and clients never see an idle new stage
+      # flash before the busy overlay. Snapshots read fresh state, so even a very
+      # fast AI pass can't leave clients stale.
       start_ai(from, retro)
-      {:ok, retro}
+      Broadcast.snapshot(retro.id)
+      {:ok, Repo.reload!(retro)}
     end
   end
 

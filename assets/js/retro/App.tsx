@@ -17,15 +17,24 @@ export function App() {
   const [helpOpen, setHelpOpen] = useState(false)
   const [participantsOpen, setParticipantsOpen] = useState(false)
 
-  // Show the stage guidance whenever the stage changes (not on first load).
+  // Show the stage guidance whenever the stage changes (not on first load). If Gemini
+  // starts working on entry, wait until it's done: a native dialog sits in the top
+  // layer and would otherwise cover the busy overlay.
   const previousStage = useRef(retro?.stage)
+  const [helpPending, setHelpPending] = useState(false)
   useEffect(() => {
     if (!retro) return
     if (previousStage.current && previousStage.current !== retro.stage && STAGE_CONFIGS[retro.stage].help) {
-      setHelpOpen(true)
+      setHelpPending(true)
     }
     previousStage.current = retro.stage
   }, [retro?.stage])
+  useEffect(() => {
+    if (helpPending && !aiBusy) {
+      setHelpPending(false)
+      setHelpOpen(true)
+    }
+  }, [helpPending, aiBusy])
 
   if (!retro) return null
 

@@ -31,7 +31,8 @@ services:
       - path: ../env.sh
         required: false
     environment:
-      # Vertex AI ADC from host gcloud (`gcloud auth application-default login`)
+      # Vertex AI ADC kept separate from any other gcloud identity on the host
+      # (see docker-dev/README.md for how to create it)
       GOOGLE_APPLICATION_CREDENTIALS: /gcloud/application_default_credentials.json
     volumes:
       - ..:/app
@@ -39,7 +40,7 @@ services:
       - deps:/app/deps
       - build:/app/_build
       - node_modules:/app/assets/node_modules
-      - ${HOME}/.config/gcloud:/gcloud:ro
+      - ${HOME}/.config/gcloud-remote-retro:/gcloud:ro
       # hide host .git so tooling can't install hooks into it
       - type: tmpfs
         target: /app/.git

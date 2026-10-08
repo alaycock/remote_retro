@@ -37,6 +37,14 @@ export function Board({ mode }: BoardProps) {
     if (!fitted.current && ideas.length > 0) fitted.current = fitAll()
   }, [ideas.length, fitAll])
 
+  // Gemini moves cards into new stacks (off to the side of the current layout), so
+  // re-frame everything once it finishes. Positions arrive in the same snapshot.
+  const wasAiBusy = useRef(aiBusy)
+  useLayoutEffect(() => {
+    if (wasAiBusy.current && !aiBusy) fitAll()
+    wasAiBusy.current = aiBusy
+  }, [aiBusy, fitAll])
+
   const groups = layout.clusters.filter((c) => c.ideaIds.length > 1 && c.group)
   const unlabeled = groups.filter((c) => !c.group?.label).length
   const { tx, ty, scale } = viewport
