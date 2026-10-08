@@ -66,22 +66,52 @@ defmodule RemoteRetro.Retros do
   def lock_retro!(retro_id),
     do: Repo.one!(from r in Retro, where: r.id == ^retro_id, lock: "FOR UPDATE")
 
+  # Facilitator-triggered AI re-groupings allowed per retro. Each one is a paid model call,
+  # so the cap is enforced here (atomically, in the database), not just by hiding the button.
+  @max_regroups 2
+
+  def max_regroups, do: @max_regroups
+
   @doc """
-  Facilitator-only: re-runs AI grouping in Group & label. Only ideas that aren't already
-  in a group are considered, so groups people (or an earlier pass) made stay as they are.
-  Returns `{:ok, :started}`, or `{:ok, :nothing_to_group}` when fewer than two ideas are
-  left ungrouped.
+  Facilitator-only: re-runs AI grouping in Group & label, at most `max_regroups/0` times per
+  retro. Only ideas that aren't already in a group are considered, so groups people (or an
+  earlier pass) made stay as they are. Returns `{:ok, :started}`, or
+  `{:ok, :nothing_to_group}` when fewer than two ideas are left ungrouped (which doesn't use
+  up a re-run). Errors include `:regroup_limit`.
   """
   def regroup(%Retro{} = retro, actor_id) do
     with :ok <- ensure_facilitator(retro, actor_id),
          :ok <- ensure_stage(retro, "grouping"),
          :ok <- ensure_ai_idle(retro),
-         true <- AI.enabled?() || {:error, :ai_disabled} do
+         true <- AI.enabled?() || {:error, :ai_disabled},
+         :ok <- claim_regroup(retro.id) do
       case AI.Runner.start(:grouping, retro.id) do
-        :ok -> {:ok, :started}
-        :skipped -> {:ok, :nothing_to_group}
+        # The runner broadcasts the retro (now busy, with the new count) to everyone.
+        :ok ->
+          {:ok, :started}
+
+        :skipped ->
+          release_regroup(retro.id)
+          {:ok, :nothing_to_group}
       end
     end
+  end
+
+  # Takes one re-run in a single conditional UPDATE, so concurrent presses can't exceed the cap.
+  defp claim_regroup(retro_id) do
+    {count, _} =
+      Repo.update_all(
+        from(r in Retro, where: r.id == ^retro_id and r.ai_regroups < ^@max_regroups),
+        inc: [ai_regroups: 1]
+      )
+
+    if count == 1, do: :ok, else: {:error, :regroup_limit}
+  end
+
+  defp release_regroup(retro_id) do
+    Repo.update_all(from(r in Retro, where: r.id == ^retro_id and r.ai_regroups > 0),
+      inc: [ai_regroups: -1]
+    )
   end
 
   @doc "Guards shared by mutations: the retro must not be mid AI pass."

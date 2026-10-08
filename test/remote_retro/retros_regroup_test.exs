@@ -51,4 +51,43 @@ defmodule RemoteRetro.RetrosRegroupTest do
     expect(RunnerMock, :start, fn :grouping, _ -> :skipped end)
     assert {:ok, :nothing_to_group} = Retros.regroup(retro, f.id)
   end
+
+  test "allows two re-runs per retro, then refuses", %{facilitator: f, retro: retro} do
+    enable_ai()
+    stub(RunnerMock, :start, fn :grouping, _ -> :ok end)
+    assert {:ok, :started} = Retros.regroup(retro, f.id)
+    assert {:ok, :started} = Retros.regroup(retro, f.id)
+    assert {:error, :regroup_limit} = Retros.regroup(retro, f.id)
+    assert Retros.get_retro!(retro.id).ai_regroups == Retros.max_regroups()
+  end
+
+  test "a re-run with nothing to group doesn't use one up", %{facilitator: f, retro: retro} do
+    enable_ai()
+    expect(RunnerMock, :start, 3, fn :grouping, _ -> :skipped end)
+    for _ <- 1..3, do: assert({:ok, :nothing_to_group} = Retros.regroup(retro, f.id))
+    assert Retros.get_retro!(retro.id).ai_regroups == 0
+  end
+
+  test "concurrent presses can't exceed the cap", %{facilitator: f, retro: retro} do
+    enable_ai()
+    stub(RunnerMock, :start, fn :grouping, _ -> :ok end)
+    parent = self()
+
+    results =
+      1..6
+      |> Enum.map(fn _ ->
+        Task.async(fn ->
+          Mox.allow(RunnerMock, parent, self())
+          Retros.regroup(retro, f.id)
+        end)
+      end)
+      |> Enum.map(&Task.await/1)
+
+    assert Enum.count(results, &(&1 == {:ok, :started})) == 2
+    assert Enum.count(results, &(&1 == {:error, :regroup_limit})) == 4
+  end
+
+  test "the count is visible to clients", %{retro: retro} do
+    assert %{"ai_regroups" => 0} = retro |> Jason.encode!() |> Jason.decode!()
+  end
 end
