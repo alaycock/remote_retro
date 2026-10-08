@@ -20,17 +20,17 @@ export function StageStepper({ stage }: { stage: Stage }) {
               {i > 0 && (
                 <span
                   aria-hidden="true"
-                  className={`h-px w-3 xl:w-5 ${i < index ? "bg-success/50" : i === index ? "bg-primary" : "bg-base-300"}`}
+                  className={`h-px w-3 xl:w-5 ${i < index ? "bg-success/50" : i === index ? "bg-primary" : "bg-base-content/15"}`}
                 />
               )}
               <span
                 aria-current={state === "current" ? "step" : undefined}
                 className={[
-                  // Every step is a pill with a 1px border, so states differ only in colour.
+                  // Every step is a pill (same border box), so states differ only in colour.
                   "rounded-full border px-2.5 py-1 text-xs font-medium whitespace-nowrap transition-colors",
                   state === "current" && "border-transparent bg-primary text-primary-content shadow-sm",
                   state === "done" && "border-transparent bg-success/15 text-success",
-                  state === "upcoming" && "border-base-300 bg-base-100 text-base-content/50",
+                  state === "upcoming" && "border-transparent bg-base-content/5 text-base-content/50",
                 ]
                   .filter(Boolean)
                   .join(" ")}
