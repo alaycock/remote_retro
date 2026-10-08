@@ -7,31 +7,15 @@ import { selectAiStatus, selectGroupsWithIdeas, type GroupWithIdeas } from "../s
 import { updateGroupLabel } from "../store/thunks"
 
 type View = "list" | "board"
-const VIEW_KEY = "remote_retro:grouping_view"
 const SAVE_DEBOUNCE_MS = 400
-
-function storedView(): View {
-  try {
-    return localStorage.getItem(VIEW_KEY) === "list" ? "list" : "board"
-  } catch {
-    return "board"
-  }
-}
 
 /**
  * Group & label: the board for dragging ideas into groups (labels float above each
- * group), and a list view for naming groups clearly. Same data, two views.
+ * group), and a list view for naming groups clearly. Same data, two views. Always
+ * opens on the board; the List choice lasts only while you're in the stage.
  */
 export function Grouping() {
-  const [view, setView] = useState<View>(storedView)
-  const choose = (next: View) => {
-    setView(next)
-    try {
-      localStorage.setItem(VIEW_KEY, next)
-    } catch {
-      // Private mode etc. — the toggle just won't be remembered.
-    }
-  }
+  const [view, choose] = useState<View>("board")
 
   return (
     <div className="flex h-full min-h-0 flex-col">

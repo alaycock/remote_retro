@@ -4,9 +4,7 @@ import { Grouping } from "../../js/retro/stages/Grouping"
 import { renderWithStore, retro, setup, snapshot } from "./helpers"
 
 describe("Group & label stage", () => {
-  beforeEach(() => localStorage.clear())
-
-  it("opens on the board and toggles to the list, remembering the choice", async () => {
+  it("always opens on the board, even after switching to the list last time", async () => {
     const store = setup(snapshot({ retro: retro({ stage: "grouping" }) }))
     const { unmount } = renderWithStore(<Grouping />, store)
     expect(screen.getByRole("tab", { name: /board/i })).toHaveAttribute("aria-selected", "true")
@@ -16,6 +14,6 @@ describe("Group & label stage", () => {
     unmount()
 
     renderWithStore(<Grouping />, store)
-    expect(screen.getByRole("tab", { name: /list/i })).toHaveAttribute("aria-selected", "true")
+    expect(screen.getByRole("tab", { name: /board/i })).toHaveAttribute("aria-selected", "true")
   })
 })
