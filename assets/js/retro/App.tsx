@@ -72,7 +72,6 @@ export function App() {
         title={config.title}
         onClose={() => setHelpOpen(false)}
         busyLabel={aiStatus ? AI_BUSY_SHORT[aiStatus] : null}
-        busyHint={aiStatus ? "Gemini is grouping clearly related ideas. Have a read while it works." : null}
       >
         {config.help?.(retro.format)}
       </Modal>

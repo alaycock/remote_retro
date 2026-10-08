@@ -46,7 +46,9 @@ export function IdeaForm({ categories, category, onCategoryChange }: IdeaFormPro
   return (
     <form onSubmit={submit} noValidate className="card bg-base-100 shadow-sm" aria-label="Submit an idea">
       <div className="card-body gap-3 p-3 sm:p-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+        {/* On wide screens the row stretches, so the text box is exactly as tall as the
+            category stack beside it. */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
           <fieldset className="sm:w-40 sm:shrink-0">
             <legend className="sr-only">Category</legend>
             {/* Native radios (arrow keys move between them) styled as stacked buttons;
@@ -75,13 +77,13 @@ export function IdeaForm({ categories, category, onCategoryChange }: IdeaFormPro
               ))}
             </div>
           </fieldset>
-          <div className="flex-1">
+          <div className="flex flex-1 flex-col">
             <label htmlFor={bodyId} className="sr-only">
               Idea
             </label>
             <textarea
               id={bodyId}
-              className={`textarea w-full resize-none sm:min-h-[6.5rem] ${error ? "textarea-error" : ""}`}
+              className={`textarea w-full resize-none sm:min-h-0 sm:flex-1 ${error ? "textarea-error" : ""}`}
               rows={2}
               placeholder={CATEGORY_META[category].prompt}
               value={body}
@@ -94,19 +96,24 @@ export function IdeaForm({ categories, category, onCategoryChange }: IdeaFormPro
               }}
               onKeyDown={onKeyDown}
             />
-            <div className="mt-1 flex items-center justify-between gap-2">
-              <span id={errorId} className="text-xs text-error">
-                {error}
-              </span>
-              <CharCount value={body} />
-            </div>
           </div>
           <button type="submit" className="btn btn-primary sm:self-start">
             <span className="hero-plus size-4" aria-hidden="true" />
             Add idea
           </button>
         </div>
-        <p className="hidden text-xs text-base-content/50 sm:block">Press Enter to submit, Shift+Enter for a new line.</p>
+        <div className="flex items-center justify-between gap-2 text-xs">
+          {error ? (
+            <span id={errorId} className="text-error">
+              {error}
+            </span>
+          ) : (
+            <span className="hidden text-base-content/50 sm:inline">Press Enter to submit, Shift+Enter for a new line.</span>
+          )}
+          <span className="ml-auto">
+            <CharCount value={body} />
+          </span>
+        </div>
       </div>
     </form>
   )

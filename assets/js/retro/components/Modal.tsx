@@ -12,12 +12,10 @@ interface ModalProps {
    * ignored) and the button shows this text with the AI sparkles instead of closeLabel.
    */
   busyLabel?: string | null
-  /** Short explanation shown beside the disabled button while busy. */
-  busyHint?: string | null
 }
 
 /** Informational native <dialog> with a single close action. */
-export function Modal({ open, title, children, onClose, closeLabel = "Got it", busyLabel = null, busyHint = null }: ModalProps) {
+export function Modal({ open, title, children, onClose, closeLabel = "Got it", busyLabel = null }: ModalProps) {
   const ref = useNativeDialog(open)
   const titleId = useId()
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -49,15 +47,14 @@ export function Modal({ open, title, children, onClose, closeLabel = "Got it", b
           {title}
         </h3>
         <div className="py-3 text-base-content/80">{children}</div>
-        <div className="modal-action items-center">
-          <p role="status" aria-live="polite" className="mr-auto text-sm text-base-content/60">
-            {busy ? busyHint : null}
-          </p>
+        <div className="modal-action">
           {/* While busy, keep the button legible: daisyUI's disabled grey nearly vanishes in dark mode. */}
           <button
             ref={buttonRef}
             type="button"
-            className={`btn btn-primary ${busy ? "gap-2 disabled:border-primary/25 disabled:bg-primary/10 disabled:text-primary" : ""}`}
+            // Fixed width so swapping "Grouping ideas…" for "Got it" doesn't resize the dialog.
+            className={`btn btn-primary min-w-44 ${busy ? "gap-2 disabled:border-primary/25 disabled:bg-primary/10 disabled:text-primary" : ""}`}
+            aria-live="polite"
             onClick={close}
             disabled={busy}
           >

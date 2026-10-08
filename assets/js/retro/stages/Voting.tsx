@@ -32,9 +32,7 @@ function VoteControls({ group, votesLeft }: { group: GroupWithIdeas; votesLeft: 
           <span className="badge badge-primary badge-sm">
             {group.myVoteCount} {group.myVoteCount === 1 ? "vote" : "votes"} from you
           </span>
-        ) : (
-          <span className="text-xs text-base-content/40">No votes from you</span>
-        )}
+        ) : null}
       </span>
       <span className="join">
         <button
