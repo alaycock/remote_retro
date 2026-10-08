@@ -43,11 +43,33 @@ export class RetroChannel {
     this.rejoinHandler = callback
   }
 
-  /** Socket-level connectivity (open vs. error/closed). */
+  /**
+   * Socket-level connectivity (open vs. error/closed). Closes caused by leaving the
+   * page (browsers drop the socket as soon as navigation starts) aren't reported, so
+   * following a link never flashes a "connection lost" state.
+   */
   onConnectionChange(callback: (connected: boolean) => void): void {
+    let leaving = false
+    const leave = () => {
+      leaving = true
+    }
+    window.addEventListener("beforeunload", leave)
+    window.addEventListener("pagehide", leave)
+    // Restored from the back/forward cache: we're live again.
+    window.addEventListener("pageshow", (e) => {
+      if (e.persisted) leaving = false
+    })
+    // A cancelled navigation (e.g. a download link) keeps us on the page.
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") leaving = false
+    })
+
     this.socket.onOpen(() => callback(true))
-    this.socket.onError(() => callback(false))
-    this.socket.onClose(() => callback(false))
+    const lost = () => {
+      if (!leaving) callback(false)
+    }
+    this.socket.onError(lost)
+    this.socket.onClose(lost)
   }
 
   push<E extends keyof PushEvents, R = unknown>(event: E, payload: PushEvents[E]): Promise<R> {
