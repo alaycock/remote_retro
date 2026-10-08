@@ -87,7 +87,6 @@ defmodule RemoteRetroWeb.Layouts do
         <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
           <span>Remote Retro · open-source retrospectives</span>
           <span class="flex gap-4">
-            <a href={~p"/faq"} class="link link-hover">FAQ</a>
             <a href={~p"/privacy"} class="link link-hover">Privacy</a>
             <a href={github_url()} class="link link-hover">GitHub</a>
           </span>
