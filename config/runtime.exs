@@ -76,6 +76,12 @@ if config_env() == :prod do
     # pool_count: 4,
     socket_options: maybe_ipv6
 
+  # Cloud SQL on Cloud Run is reached over a Unix socket mounted at
+  # /cloudsql/<instance connection name>; the URL's host is then ignored.
+  if socket_dir = System.get_env("DB_SOCKET_DIR") do
+    config :remote_retro, RemoteRetro.Repo, socket_dir: socket_dir
+  end
+
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you
   # want to use a different value for prod and you most likely don't want

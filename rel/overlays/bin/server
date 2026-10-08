@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+
+cd -P -- "$(dirname -- "$0")"
+# Single-instance deploy (see deploy/README.md): migrating on boot is safe and keeps
+# deploys to one step. Revisit if the service ever runs more than one instance.
+./migrate
+PHX_SERVER=true exec ./remote_retro start
