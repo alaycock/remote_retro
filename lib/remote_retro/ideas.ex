@@ -176,4 +176,18 @@ defmodule RemoteRetro.Ideas do
 
     :ok
   end
+
+  @doc "Action items assigned to `user_id` in the given retros, as `%{retro_id => [idea]}`."
+  def action_items_assigned_to(_user_id, []), do: %{}
+
+  def action_items_assigned_to(user_id, retro_ids) do
+    Repo.all(
+      from i in Idea,
+        where:
+          i.retro_id in ^retro_ids and i.assignee_id == ^user_id and
+            i.category == ^Formats.action_item(),
+        order_by: i.id
+    )
+    |> Enum.group_by(& &1.retro_id)
+  end
 end

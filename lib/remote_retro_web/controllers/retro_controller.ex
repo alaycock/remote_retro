@@ -1,12 +1,16 @@
 defmodule RemoteRetroWeb.RetroController do
   use RemoteRetroWeb, :controller
 
-  alias RemoteRetro.{Formats, Retros}
+  alias RemoteRetro.{Formats, Ideas, Retros}
   alias RemoteRetroWeb.UserSocket
 
   def index(conn, _params) do
+    user = conn.assigns.current_user
+    retros = Retros.list_retros_for_user(user)
+
     render(conn, :index,
-      retros: Retros.list_retros_for_user(conn.assigns.current_user),
+      retros: retros,
+      my_action_items: Ideas.action_items_assigned_to(user.id, Enum.map(retros, & &1.id)),
       formats: Formats.all(),
       page_title: "Your retros"
     )
