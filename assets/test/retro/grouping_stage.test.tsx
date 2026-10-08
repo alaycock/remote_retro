@@ -109,3 +109,32 @@ describe("Group & label list view: moving ideas", () => {
     expect(push).not.toHaveBeenCalledWith("idea:move", expect.anything())
   })
 })
+
+describe("Re-run grouping", () => {
+  it("is offered to the facilitator when AI is configured, and asks the server to regroup", async () => {
+    const { channel, push } = mockChannel(() => Promise.resolve({ status: "started" }))
+    const store = setup(snapshot({ retro: retro({ stage: "grouping" }), ai_enabled: true }), { channel })
+    renderWithStore(<Grouping />, store)
+    await userEvent.click(screen.getByRole("button", { name: /re-run grouping/i }))
+    expect(push).toHaveBeenCalledWith("ai:regroup", {})
+  })
+
+  it("says so when every idea is already grouped", async () => {
+    const { channel } = mockChannel(() => Promise.resolve({ status: "nothing_to_group" }))
+    const store = setup(snapshot({ retro: retro({ stage: "grouping" }), ai_enabled: true }), { channel })
+    renderWithStore(<Grouping />, store)
+    await userEvent.click(screen.getByRole("button", { name: /re-run grouping/i }))
+    expect(store.getState().ui.toasts.at(-1)?.message).toBe("Every idea is already in a group.")
+  })
+
+  it("is hidden for participants and when AI isn't configured", () => {
+    const { unmount } = renderWithStore(
+      <Grouping />,
+      setup(snapshot({ retro: retro({ stage: "grouping" }), ai_enabled: true }), { userId: 2 }),
+    )
+    expect(screen.queryByRole("button", { name: /re-run grouping/i })).not.toBeInTheDocument()
+    unmount()
+    renderWithStore(<Grouping />, setup(snapshot({ retro: retro({ stage: "grouping" }), ai_enabled: false })))
+    expect(screen.queryByRole("button", { name: /re-run grouping/i })).not.toBeInTheDocument()
+  })
+})

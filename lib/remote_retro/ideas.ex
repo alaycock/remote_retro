@@ -152,4 +152,28 @@ defmodule RemoteRetro.Ideas do
         else: [assignee_id: "must be a participant"]
     end)
   end
+
+  @doc """
+  Sets `{id, x, y}` positions for ideas in the retro in a single statement (one round trip,
+  however many ideas — this matters on high-latency connections like dev → Cloud SQL).
+  """
+  def update_positions(_retro_id, []), do: :ok
+
+  def update_positions(retro_id, positions) do
+    {ids, xs, ys} =
+      Enum.reduce(Enum.reverse(positions), {[], [], []}, fn {id, x, y}, {ids, xs, ys} ->
+        {[id | ids], [x * 1.0 | xs], [y * 1.0 | ys]}
+      end)
+
+    Repo.query!(
+      """
+      UPDATE ideas AS i SET x = v.x, y = v.y, updated_at = $5
+      FROM unnest($2::bigint[], $3::float8[], $4::float8[]) AS v(id, x, y)
+      WHERE i.id = v.id AND i.retro_id = $1
+      """,
+      [Ecto.UUID.dump!(retro_id), ids, xs, ys, DateTime.utc_now()]
+    )
+
+    :ok
+  end
 end

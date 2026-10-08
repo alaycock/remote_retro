@@ -9,6 +9,7 @@ import {
   selectPresentUsers,
   selectRankedGroups,
 } from "../../js/retro/store/selectors"
+import { ideaUpserted } from "../../js/retro/store/slices"
 import {
   changeStage,
   createIdea,
@@ -79,6 +80,13 @@ describe("selectors", () => {
     const votes = [vote(1, 1, 20), vote(2, 1, 21), vote(3, 1, 22), vote(4, 2, 23), vote(5, 2, 23)]
     const ranked = selectRankedGroups(setup(snapshot({ ideas, groups, votes })).getState())
     expect(ranked.map((g) => g.id)).toEqual([23, 21, 22, 20])
+  })
+
+  it("keeps optimistic ideas at the end, in creation order", () => {
+    const store = setup(snapshot({ ideas: [idea({ id: 5 }), idea({ id: 9 })] }))
+    store.dispatch(ideaUpserted(idea({ id: -1, body: "first draft" })))
+    store.dispatch(ideaUpserted(idea({ id: -2, body: "second draft" })))
+    expect(store.getState().ideas.ids).toEqual([5, 9, -1, -2])
   })
 
   it("is memoised", () => {

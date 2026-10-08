@@ -24,7 +24,7 @@ defmodule RemoteRetro.AI.Apply do
   Does not broadcast.
   """
   import Ecto.Query
-  alias RemoteRetro.{Formats, Grouping, Groups, Layout, Repo}
+  alias RemoteRetro.{Formats, Grouping, Groups, Ideas, Layout, Repo}
   alias RemoteRetro.Groups.Group
   alias RemoteRetro.Ideas.Idea
   alias RemoteRetro.Retros.Retro
@@ -76,18 +76,7 @@ defmodule RemoteRetro.AI.Apply do
       positions =
         layout(candidates, suggestions, Formats.categories(format), origin(retro_id, candidates))
 
-      now = DateTime.utc_now()
-
-      {:ok, _} =
-        Repo.transact(fn ->
-          for {id, x, y} <- positions do
-            Repo.update_all(from(i in Idea, where: i.retro_id == ^retro_id and i.id == ^id),
-              set: [x: x, y: y, updated_at: now]
-            )
-          end
-
-          {:ok, length(positions)}
-        end)
+      :ok = Ideas.update_positions(retro_id, positions)
 
       {:ok, _} = Groups.sync(retro_id)
 

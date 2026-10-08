@@ -5,7 +5,11 @@ export const snapshotReceived = (snapshot: Snapshot) => ({ type: "snapshot/recei
 const isSnapshot = (action: { type: string }): action is ReturnType<typeof snapshotReceived> =>
   action.type === "snapshot/received"
 
-export const ideasAdapter = createEntityAdapter<Idea>({ sortComparer: (a, b) => a.id - b.id })
+// Optimistic ideas carry temporary negative ids (-1, -2, …). Sort them after every saved
+// idea, in creation order, so a new idea appears where it will end up (at the bottom)
+// instead of jumping from the top once the server assigns its real id.
+const ideaSortKey = (id: number) => (id < 0 ? Number.MAX_SAFE_INTEGER / 2 - id : id)
+export const ideasAdapter = createEntityAdapter<Idea>({ sortComparer: (a, b) => ideaSortKey(a.id) - ideaSortKey(b.id) })
 export const groupsAdapter = createEntityAdapter<Group>({ sortComparer: (a, b) => a.id - b.id })
 export const votesAdapter = createEntityAdapter<Vote>()
 export const usersAdapter = createEntityAdapter<User>()
@@ -95,7 +99,7 @@ export interface Toast {
 
 export const uiSlice = createSlice({
   name: "ui",
-  initialState: { currentUserId: 0, toasts: [] as Toast[], connected: false, devTools: false },
+  initialState: { currentUserId: 0, toasts: [] as Toast[], connected: false, devTools: false, aiEnabled: false },
   reducers: {
     devToolsEnabled: (state) => {
       state.devTools = true
@@ -116,6 +120,10 @@ export const uiSlice = createSlice({
       state.toasts = state.toasts.filter((t) => t.id !== action.payload)
     },
   },
+  extraReducers: (builder) =>
+    builder.addMatcher(isSnapshot, (state, action) => {
+      state.aiEnabled = action.payload.ai_enabled === true
+    }),
 })
 
 export const { retroUpdated } = retroSlice.actions

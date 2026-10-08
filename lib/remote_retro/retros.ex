@@ -66,6 +66,24 @@ defmodule RemoteRetro.Retros do
   def lock_retro!(retro_id),
     do: Repo.one!(from r in Retro, where: r.id == ^retro_id, lock: "FOR UPDATE")
 
+  @doc """
+  Facilitator-only: re-runs AI grouping in Group & label. Only ideas that aren't already
+  in a group are considered, so groups people (or an earlier pass) made stay as they are.
+  Returns `{:ok, :started}`, or `{:ok, :nothing_to_group}` when fewer than two ideas are
+  left ungrouped.
+  """
+  def regroup(%Retro{} = retro, actor_id) do
+    with :ok <- ensure_facilitator(retro, actor_id),
+         :ok <- ensure_stage(retro, "grouping"),
+         :ok <- ensure_ai_idle(retro),
+         true <- AI.enabled?() || {:error, :ai_disabled} do
+      case AI.Runner.start(:grouping, retro.id) do
+        :ok -> {:ok, :started}
+        :skipped -> {:ok, :nothing_to_group}
+      end
+    end
+  end
+
   @doc "Guards shared by mutations: the retro must not be mid AI pass."
   def ensure_ai_idle(%Retro{ai_status: nil}), do: :ok
   def ensure_ai_idle(%Retro{}), do: {:error, :ai_busy}
@@ -299,6 +317,8 @@ defmodule RemoteRetro.Retros do
 
     %{
       retro: retro,
+      # Lets clients hide AI-only controls (e.g. re-run grouping) when AI isn't configured.
+      ai_enabled: AI.enabled?(),
       users: list_participants(retro_id),
       ideas: Repo.all(from i in Idea, where: i.retro_id == ^retro_id, order_by: i.id),
       groups: Repo.all(from g in Group, where: g.retro_id == ^retro_id, order_by: g.id),

@@ -17,6 +17,7 @@ defmodule RemoteRetroWeb.RetroChannelJoinTest do
     {_socket, snapshot} = join_retro(guest, retro)
 
     assert snapshot.retro.id == retro.id
+    assert is_boolean(snapshot.ai_enabled)
     assert length(snapshot.ideas) == 1
 
     assert Enum.map(snapshot.users, & &1.id) |> Enum.sort() ==
