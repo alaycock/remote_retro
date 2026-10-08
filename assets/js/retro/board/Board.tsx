@@ -37,7 +37,7 @@ export function Board({ mode }: BoardProps) {
     if (!fitted.current && ideas.length > 0) fitted.current = fitAll()
   }, [ideas.length, fitAll])
 
-  // Gemini moves cards into new stacks (off to the side of the current layout), so
+  // AI grouping moves cards into new stacks (off to the side of the current layout), so
   // re-frame everything once it finishes. Positions arrive in the same snapshot.
   const wasAiBusy = useRef(aiBusy)
   useLayoutEffect(() => {

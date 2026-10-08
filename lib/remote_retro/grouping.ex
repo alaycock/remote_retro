@@ -12,7 +12,7 @@ defmodule RemoteRetro.Grouping do
   alias RemoteRetro.Formats
 
   @card_w 200
-  @card_h 120
+  @card_h 64
   @overlap_buffer 8
 
   # Card height grows with its text so nothing is ever cropped. Must match

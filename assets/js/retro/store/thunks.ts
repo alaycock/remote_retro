@@ -10,7 +10,7 @@ const REASON_MESSAGES: Record<string, string> = {
   not_found: "It no longer exists.",
   forbidden: "You don't have permission to do that.",
   invalid_stage: "That isn't possible in the current stage.",
-  ai_busy: "Gemini is still working. Try again in a moment.",
+  ai_busy: "Ideas are still being grouped. Try again in a moment.",
   vote_limit: `You've already used all ${VOTE_LIMIT} votes.`,
   invalid: "Please check what you entered and try again.",
   unknown: "Something went wrong. Please try again.",

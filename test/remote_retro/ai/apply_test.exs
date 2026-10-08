@@ -155,7 +155,7 @@ defmodule RemoteRetro.AI.ApplyTest do
     test "starts at the origin on an empty board and only stacks when nothing is ungrouped" do
       ideas = [%{id: 1, category: "happy", body: "a"}, %{id: 2, category: "happy", body: "b"}]
 
-      next = 120.0 - Apply.stack_overlap()
+      next = (Grouping.card_h() - Apply.stack_overlap()) * 1.0
       shifted = 520 + next
 
       assert [{1, +0.0, +0.0}, {2, +0.0, ^next}] =
@@ -212,13 +212,14 @@ defmodule RemoteRetro.AI.ApplyTest do
                Apply.apply_grouping(retro.id, [%{idea_ids: [a.id, c.id, 999], label: nil}])
 
       [na, nb, nc, nd] = for i <- [a, b, c, d], do: Repo.get!(Idea, i.id)
-      # b and d (both happy) stacked in one column at the top.
+      # b and d (both happy, one-line) stacked in one column at the top, 24 apart.
+      h = Grouping.card_h()
       assert {nb.x, nb.y} == {+0.0, +0.0}
-      assert {nd.x, nd.y} == {+0.0, 144.0}
+      assert {nd.x, nd.y} == {+0.0, h + 24.0}
       # a and c cascade section_gap below that block, overlapping by stack_overlap.
-      top = 264.0 + Apply.section_gap()
+      top = 2.0 * h + 24 + Apply.section_gap()
       assert {na.x, na.y} == {+0.0, top}
-      assert {nc.x, nc.y} == {+0.0, top + 120 - Apply.stack_overlap()}
+      assert {nc.x, nc.y} == {+0.0, top + h - Apply.stack_overlap()}
       assert na.group_id != nil and na.group_id == nc.group_id
       assert nb.group_id != nd.group_id
     end

@@ -71,8 +71,10 @@ defmodule RemoteRetro.AI.TaskRunnerTest do
       new_c = Repo.get!(Idea, c.id)
       new_b = Repo.get!(Idea, b.id)
       assert {new_b.x, new_b.y} == {+0.0, +0.0}
-      assert new_a.y == 120 + Apply.section_gap()
-      assert {new_c.x - new_a.x, new_c.y - new_a.y} == {+0.0, 120.0 - Apply.stack_overlap()}
+      assert new_a.y == RemoteRetro.Grouping.card_h() + Apply.section_gap()
+
+      assert {new_c.x - new_a.x, new_c.y - new_a.y} ==
+               {+0.0, (RemoteRetro.Grouping.card_h() - Apply.stack_overlap()) * 1.0}
     end
 
     @tag :needs_groups_sync

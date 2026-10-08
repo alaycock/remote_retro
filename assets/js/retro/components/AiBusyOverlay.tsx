@@ -3,7 +3,7 @@ import { selectAiStatus } from "../store/selectors"
 import type { AiStatus } from "../types"
 
 export const AI_BUSY_COPY: Record<NonNullable<AiStatus>, string> = {
-  grouping: "Gemini is grouping clearly related ideas…",
+  grouping: "Grouping related ideas…",
 }
 
 /** Short form, e.g. for a disabled button while the AI pass runs. */

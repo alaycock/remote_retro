@@ -18,7 +18,7 @@ export function App() {
   const [helpOpen, setHelpOpen] = useState(false)
   const [participantsOpen, setParticipantsOpen] = useState(false)
 
-  // Show the stage guidance whenever the stage changes (not on first load). If Gemini
+  // Show the stage guidance whenever the stage changes (not on first load). If the AI
   // is working on entry, the dialog doubles as the progress state: its button stays
   // disabled ("Grouping ideas…") until the AI pass finishes.
   const previousStage = useRef(retro?.stage)

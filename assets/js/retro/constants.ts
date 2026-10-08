@@ -1,7 +1,7 @@
 // Must match RemoteRetro.Grouping (lib/remote_retro/grouping.ex).
 export const CARD_W = 200
 /** Minimum (and default) card height. */
-export const CARD_H = 120
+export const CARD_H = 64
 export const OVERLAP_BUFFER = 8
 
 const CARD_CHROME = 44
@@ -11,7 +11,7 @@ const CHARS_PER_LINE = 24
 /**
  * Card height grows with its text so nothing is ever cropped: 44px of chrome plus
  * 20px per wrapped line (a conservative 24 code points per line, per paragraph),
- * never below CARD_H. Must match RemoteRetro.Grouping.card_height/1 exactly.
+ * so a one-line idea is 64px (CARD_H). Must match RemoteRetro.Grouping.card_height/1 exactly.
  */
 export function cardHeight(body: string | null | undefined): number {
   if (!body) return CARD_H

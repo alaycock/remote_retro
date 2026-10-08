@@ -5,7 +5,7 @@ import { makeStore } from "../store"
 import { currentUserSet, groupUpserted, snapshotReceived } from "../store/slices"
 import type { Group, Idea, Snapshot } from "../types"
 import { Board } from "./Board"
-import { cardHeight } from "../constants"
+import { CARD_H, cardHeight } from "../constants"
 import { LABEL_DEBOUNCE_MS, LABEL_MIN_PX, LABEL_WIDTH, labelWidth } from "./GroupLabel"
 
 const idea = (id: number, x: number | null, y: number | null, group_id: number | null, body = `idea ${id}`): Idea => ({
@@ -177,8 +177,8 @@ describe("Board cards", () => {
     const el = card("flaky deploys")
     expect(el.style.width).toBe("200px")
     expect(el.style.height).toBe(`${cardHeight(body)}px`)
-    expect(cardHeight(body)).toBeGreaterThan(120)
-    expect(card("short").style.height).toBe("120px")
+    expect(cardHeight(body)).toBeGreaterThan(CARD_H)
+    expect(card("short").style.height).toBe("64px")
     expect(el).not.toHaveAttribute("title")
     const text = el.querySelector("p")!
     expect(text.textContent).toBe(body)
@@ -295,11 +295,11 @@ describe("Board group labels", () => {
     const before = wrapper().style.transform
     const el = card("idea 1")
     fireEvent.pointerDown(el, { pointerId: 1, button: 0, clientX: 0, clientY: 0 })
-    fireEvent.pointerMove(el, { pointerId: 1, clientX: 0, clientY: -30 })
-    fireEvent.pointerUp(el, { pointerId: 1, clientX: 0, clientY: -30 })
-    // Idea 1 moved up 30 and still overlaps idea 2 (x overlap 150, y overlap 50)
+    fireEvent.pointerMove(el, { pointerId: 1, clientX: 0, clientY: -10 })
+    fireEvent.pointerUp(el, { pointerId: 1, clientX: 0, clientY: -10 })
+    // Idea 1 moved up 10 and still overlaps idea 2 (x overlap 150, y overlap 14 with 64-tall cards)
     expect(wrapper().style.transform).not.toBe(before)
-    expect(wrapper().style.transform).toContain("-66px")
+    expect(wrapper().style.transform).toContain("-46px")
   })
 })
 

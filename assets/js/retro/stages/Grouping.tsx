@@ -413,7 +413,7 @@ function LabelInput({ id, group }: { id: string; group: GroupWithIdeas }) {
         }}
       />
       {group.label_source === "ai" && group.label && (
-        <span className="badge badge-secondary badge-soft badge-sm shrink-0 gap-1" title="Suggested by Gemini">
+        <span className="badge badge-secondary badge-soft badge-sm shrink-0 gap-1" title="Suggested by AI">
           <span className="hero-sparkles-micro size-3.5" aria-hidden="true" />
           AI
         </span>

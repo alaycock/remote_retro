@@ -1,6 +1,6 @@
 // Shared clustering fixtures. test/remote_retro/grouping_parity_test.exs mirrors
 // these exact coordinates, bodies and expectations (CARD_W 200, height
-// cardHeight(body) with a 120 minimum, buffer 8). Update both together.
+// cardHeight(body) with a 64 minimum, buffer 8). Update both together.
 import type { Positioned } from "./geometry"
 
 export interface ClusterFixture {
@@ -40,7 +40,7 @@ export const CLUSTER_FIXTURES: ClusterFixture[] = [
   },
   {
     name: "chain discovered out of id order still merges",
-    ideas: [idea(5, 300, 0), idea(3, 0, 0), idea(9, 150, 60)],
+    ideas: [idea(5, 300, 0), idea(3, 0, 0), idea(9, 150, 30)],
     expected: [[3, 5, 9]],
   },
   {
@@ -55,17 +55,17 @@ export const CLUSTER_FIXTURES: ClusterFixture[] = [
   },
   {
     name: "overlap of exactly 8 on y does not group",
-    ideas: [idea(1, 0, 0), idea(2, 0, 112)],
+    ideas: [idea(1, 0, 0), idea(2, 0, 56)],
     expected: [[1], [2]],
   },
   {
     name: "overlap of 9 on y groups",
-    ideas: [idea(1, 0, 0), idea(2, 0, 111)],
+    ideas: [idea(1, 0, 0), idea(2, 0, 55)],
     expected: [[1, 2]],
   },
   {
     name: "edge-touching cards stay apart",
-    ideas: [idea(1, 0, 0), idea(2, 200, 0), idea(3, 0, 120)],
+    ideas: [idea(1, 0, 0), idea(2, 200, 0), idea(3, 0, 64)],
     expected: [[1], [2], [3]],
   },
   {
@@ -116,7 +116,7 @@ export const CLUSTER_FIXTURES: ClusterFixture[] = [
   },
   {
     name: "a tall card's height does not extend upwards",
-    ideas: [idea(1, 0, 0), idea(2, 0, 115, "happy", TALL)],
+    ideas: [idea(1, 0, 0), idea(2, 0, 59, "happy", TALL)],
     expected: [[1], [2]],
   },
   {
