@@ -56,7 +56,7 @@ export function IdeaForm({ categories, category, onCategoryChange }: IdeaFormPro
                 <label
                   key={c}
                   className={[
-                    "btn btn-sm join-item flex-1 justify-start gap-1.5 font-medium sm:w-full sm:flex-none",
+                    "btn btn-md join-item flex-1 justify-start gap-2 font-medium sm:w-full sm:flex-none",
                     "has-[:checked]:z-10 has-[:checked]:border-primary has-[:checked]:bg-primary/10 has-[:checked]:text-primary",
                     "has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary",
                   ].join(" ")}
@@ -69,7 +69,7 @@ export function IdeaForm({ categories, category, onCategoryChange }: IdeaFormPro
                     onChange={() => onCategoryChange(c)}
                     className="sr-only"
                   />
-                  <CategoryIcon category={c} size="sm" />
+                  <CategoryIcon category={c} />
                   {CATEGORY_META[c].label}
                 </label>
               ))}
@@ -81,7 +81,7 @@ export function IdeaForm({ categories, category, onCategoryChange }: IdeaFormPro
             </label>
             <textarea
               id={bodyId}
-              className={`textarea w-full resize-none ${error ? "textarea-error" : ""}`}
+              className={`textarea w-full resize-none sm:min-h-[6.5rem] ${error ? "textarea-error" : ""}`}
               rows={2}
               placeholder={CATEGORY_META[category].prompt}
               value={body}
