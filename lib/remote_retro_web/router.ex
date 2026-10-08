@@ -19,7 +19,6 @@ defmodule RemoteRetroWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
-    get "/faq", PageController, :faq
     get "/privacy", PageController, :privacy
 
     get "/auth/google", AuthController, :request

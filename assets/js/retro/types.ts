@@ -94,6 +94,8 @@ export interface PushEvents {
   "retro:stage": { stage: Stage }
   "retro:facilitator": { user_id: number }
   "user:typing": Record<string, never>
+  /** Dev only (see RemoteRetro.DevSeed). */
+  "dev:seed_ideas": Record<string, never>
 }
 
 // Server -> client broadcasts and their payloads.

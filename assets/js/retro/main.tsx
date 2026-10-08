@@ -5,13 +5,15 @@ import { App } from "./App"
 import { RetroChannel } from "./channel"
 import { makeStore } from "./store"
 import { bindChannel } from "./store/bind_channel"
-import { connectedChanged, currentUserSet, snapshotReceived } from "./store/slices"
+import { connectedChanged, currentUserSet, devToolsEnabled, snapshotReceived } from "./store/slices"
 
 async function boot(root: HTMLElement) {
-  const { retroId, userToken, userId } = root.dataset as Record<string, string>
+  const { retroId, userToken, userId, devTools } = root.dataset as Record<string, string>
   const channel = new RetroChannel(retroId, userToken)
   const store = makeStore(channel)
   store.dispatch(currentUserSet(Number(userId)))
+  // Only set by the server in dev (`:dev_routes`); the matching channel event doesn't exist in prod.
+  if (devTools === "true") store.dispatch(devToolsEnabled())
   bindChannel(channel, store.dispatch)
   channel.onConnectionChange((connected) => store.dispatch(connectedChanged(connected)))
   channel.onRejoin((snapshot) => store.dispatch(snapshotReceived(snapshot)))

@@ -35,4 +35,16 @@ defmodule RemoteRetroWeb.RetroChannelJoinTest do
                "retro:#{Ecto.UUID.generate()}"
              )
   end
+
+  test "dev:seed_ideas fills the retro and broadcasts a snapshot" do
+    user = user_fixture()
+    retro = retro_fixture(user, %{stage: "idea-generation"})
+    {socket, _snapshot} = join_retro(user, retro)
+
+    ref = push(socket, "dev:seed_ideas", %{})
+    assert_reply ref, :ok, %{count: count}
+    assert count > 0
+    assert_broadcast "snapshot", %{ideas: ideas}
+    assert length(ideas) == count
+  end
 end

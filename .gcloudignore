@@ -15,3 +15,4 @@ env.sh
 xaa
 erl_crash.dump
 deploy/env.prod.sh
+priv/dev/

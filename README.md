@@ -40,6 +40,11 @@ docker compose logs -f app
 Compose starts Postgres 17 and an app container (Elixir 1.20 / OTP 28, Node 24). `deps/`,
 `_build/`, `assets/node_modules/` and the database live in Docker volumes, not in your checkout.
 
+**Database.** Local dev uses the shared **staging** database on Cloud SQL (through the
+`staging-db` Cloud SQL Auth Proxy container) once `DEV_DATABASE_URL` is in `env.sh` — run
+`deploy/setup-staging.sh` once to create it and write that line. Without it, dev falls back to
+the local Postgres container. Tests always use the local container.
+
 **Signing in.** In dev you can skip Google entirely:
 `http://localhost:4000/dev/login?email=you@example.com` (optional `&name=…&picture=…`).
 

@@ -26,15 +26,13 @@ function VoteControls({ group, votesLeft }: { group: GroupWithIdeas; votesLeft: 
   const dispatch = useAppDispatch()
   const name = group.label ?? (group.ideas.length === 1 ? group.ideas[0].body : "this group")
   return (
-    <div className="flex items-center justify-between gap-2">
+    <div className="flex items-center justify-between gap-2 border-t border-base-200 pt-2">
       <span className="text-sm text-base-content/70">
         {group.myVoteCount > 0 ? (
           <span className="badge badge-primary badge-sm">
             {group.myVoteCount} {group.myVoteCount === 1 ? "vote" : "votes"} from you
           </span>
-        ) : (
-          <span className="text-base-content/40">No votes from you</span>
-        )}
+        ) : null}
       </span>
       <span className="join">
         <button
@@ -68,8 +66,8 @@ export function Voting() {
   const votesLeft = useAppSelector(selectMyVotesLeft)
 
   return (
-    <div className="mx-auto max-w-6xl p-3 sm:p-4">
-      <div className="sticky top-0 z-10 -mx-3 mb-4 flex flex-wrap items-center justify-between gap-2 bg-base-200/90 px-3 py-2 backdrop-blur sm:-mx-4 sm:px-4">
+    <div className="mx-auto max-w-[1800px] px-3 pb-6 sm:px-4 lg:px-6">
+      <div className="sticky top-0 z-10 -mx-3 mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-base-300/60 bg-base-200/90 px-3 py-2 backdrop-blur sm:-mx-4 sm:px-4 lg:-mx-6 lg:px-6">
         <div>
           <h1 className="text-lg font-semibold">Vote on what matters most</h1>
           <p className="text-sm text-base-content/60">Voting is blind. Totals are revealed in the next stage.</p>
@@ -79,10 +77,11 @@ export function Voting() {
       {groups.length === 0 ? (
         <p className="py-16 text-center text-base-content/60">There's nothing to vote on yet.</p>
       ) : (
-        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        // Masonry: cards keep their natural height, so big and small groups pack tightly.
+        <ul className="columns-1 gap-3 md:columns-2 xl:columns-3 2xl:columns-4">
           {groups.map((group) => (
-            <li key={group.id}>
-              <GroupCard group={group} footer={<VoteControls group={group} votesLeft={votesLeft} />} />
+            <li key={group.id} className="mb-3 break-inside-avoid">
+              <GroupCard compact group={group} footer={<VoteControls group={group} votesLeft={votesLeft} />} />
             </li>
           ))}
         </ul>

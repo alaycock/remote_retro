@@ -91,9 +91,9 @@ export const STAGE_CONFIGS: Record<Stage, StageConfig> = {
     help: () => (
       <Guidance
         items={[
-          "On the board, drag related ideas so they overlap; overlapping cards form a group. Leave unrelated ideas apart.",
-          "Give each group a short label, right on the board or in the list view.",
-          "Gemini may have already grouped clearly related ideas. Rearrange or relabel anything that doesn't fit.",
+          "Drag related ideas so they overlap; overlapping cards form a group. Leave unrelated ideas apart.",
+          "Give each group a short label.",
+          "Some related ideas may already be grouped for you. Rearrange or relabel anything that doesn't fit.",
         ]}
       />
     ),

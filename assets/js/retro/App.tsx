@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { AiBusyOverlay } from "./components/AiBusyOverlay"
+import { AI_BUSY_SHORT, AiBusyOverlay } from "./components/AiBusyOverlay"
 import { ConnectionBanner } from "./components/ConnectionBanner"
 import { ErrorBoundary } from "./components/ErrorBoundary"
 import { Header } from "./components/Header"
@@ -13,28 +13,22 @@ import { selectAiStatus, selectRetro } from "./store/selectors"
 /** The retro room: header + stepper, current stage, participants, overlays. */
 export function App() {
   const retro = useAppSelector(selectRetro)
-  const aiBusy = useAppSelector(selectAiStatus) != null
+  const aiStatus = useAppSelector(selectAiStatus)
+  const aiBusy = aiStatus != null
   const [helpOpen, setHelpOpen] = useState(false)
   const [participantsOpen, setParticipantsOpen] = useState(false)
 
-  // Show the stage guidance whenever the stage changes (not on first load). If Gemini
-  // starts working on entry, wait until it's done: a native dialog sits in the top
-  // layer and would otherwise cover the busy overlay.
+  // Show the stage guidance whenever the stage changes (not on first load). If the AI
+  // is working on entry, the dialog doubles as the progress state: its button stays
+  // disabled ("Grouping ideas…") until the AI pass finishes.
   const previousStage = useRef(retro?.stage)
-  const [helpPending, setHelpPending] = useState(false)
   useEffect(() => {
     if (!retro) return
     if (previousStage.current && previousStage.current !== retro.stage && STAGE_CONFIGS[retro.stage]?.help) {
-      setHelpPending(true)
+      setHelpOpen(true)
     }
     previousStage.current = retro.stage
   }, [retro?.stage])
-  useEffect(() => {
-    if (helpPending && !aiBusy) {
-      setHelpPending(false)
-      setHelpOpen(true)
-    }
-  }, [helpPending, aiBusy])
 
   if (!retro) return null
 
@@ -73,14 +67,20 @@ export function App() {
         </div>
       </div>
 
-      <Modal open={helpOpen} title={config.title} onClose={() => setHelpOpen(false)}>
+      <Modal
+        open={helpOpen}
+        title={config.title}
+        onClose={() => setHelpOpen(false)}
+        busyLabel={aiStatus ? AI_BUSY_SHORT[aiStatus] : null}
+      >
         {config.help?.(retro.format)}
       </Modal>
       <Modal open={participantsOpen} title="Participants" onClose={() => setParticipantsOpen(false)} closeLabel="Close">
         <UserList />
       </Modal>
 
-      <AiBusyOverlay />
+      {/* The open help dialog already shows the AI progress; don't stack a second message. */}
+      <AiBusyOverlay hidden={helpOpen} />
       <Toasts />
     </div>
   )

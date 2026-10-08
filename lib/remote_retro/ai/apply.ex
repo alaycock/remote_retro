@@ -2,29 +2,43 @@ defmodule RemoteRetro.AI.Apply do
   @moduledoc """
   Applies validated AI suggestions to a retro.
 
-  Each suggested group's ideas are cascaded mostly vertically from an anchor
-  (offset 12,84 per card). Neighbouring 200x120 cards then overlap by 188x36,
-  well over the 8px buffer on both axes, so `Groups.sync/1` clusters them,
-  while each card's author line and first couple of text lines stay visible.
-  Anchors are laid out in a grid in free space to the right of every
-  positioned idea; cells are sized for the largest stack plus an 80px gap so
-  stacks never touch each other or existing cards. Other ideas stay where they
-  are.
+  Runs when the board is fresh, so every grouping candidate is re-laid out:
+
+    * Ideas the AI left ungrouped are packed compactly at the top with
+      `Layout.pack/4` (one column block per category, real card heights, a
+      24px gap, at most `Layout.rows_per_column/0` cards per column).
+    * Each suggested group becomes a vertical cascade below that block: every
+      card starts 12px above the previous card's bottom (same x), so
+      neighbours overlap by 12 (> the 8px buffer, so `Groups.sync/1` clusters
+      them) and only their bottom padding is covered: all text stays visible.
+    * Stacks are laid left to right, 80px apart, in rows at least as wide as
+      the ungrouped block and about half the groups (so roughly two rows); each row starts 120px
+      below the previous row's tallest stack, leaving room for the floating
+      group label 36px above a group.
+
+  Ideas already in multi-idea groups are not candidates; when any are on the
+  board the new layout starts 120px below them.
 
   A label the model suggested is only written to a group that is still
   unlabelled at apply time (`label_source: "ai"`), so user edits always win.
   Does not broadcast.
   """
   import Ecto.Query
-  alias RemoteRetro.{Formats, Groups, Repo}
+  alias RemoteRetro.{Formats, Grouping, Groups, Layout, Repo}
   alias RemoteRetro.Groups.Group
   alias RemoteRetro.Ideas.Idea
+  alias RemoteRetro.Retros.Retro
 
-  @card_w 200
-  @card_h 120
-  @offset_x 12
-  @offset_y 84
-  @gap 80
+  @stack_overlap 12
+  @single_gap 24
+  @stack_gap 80
+  @section_gap 120
+  @min_stacks_per_row 6
+
+  def stack_overlap, do: @stack_overlap
+  def stack_gap, do: @stack_gap
+  def section_gap, do: @section_gap
+  def min_stacks_per_row, do: @min_stacks_per_row
 
   @doc "Non-action ideas that are not already in a multi-idea group."
   def grouping_candidates(retro_id) do
@@ -45,7 +59,8 @@ defmodule RemoteRetro.AI.Apply do
   @spec apply_grouping(Ecto.UUID.t(), [%{idea_ids: [integer], label: String.t() | nil}]) ::
           {:ok, %{groups: non_neg_integer, labeled: non_neg_integer}}
   def apply_grouping(retro_id, suggestions) do
-    candidate_ids = retro_id |> grouping_candidates() |> MapSet.new(& &1.id)
+    candidates = grouping_candidates(retro_id)
+    candidate_ids = MapSet.new(candidates, & &1.id)
 
     suggestions =
       for %{idea_ids: ids} = suggestion <- suggestions,
@@ -56,7 +71,11 @@ defmodule RemoteRetro.AI.Apply do
     if suggestions == [] do
       {:ok, %{groups: 0, labeled: 0}}
     else
-      positions = layout(bounding_box(retro_id), suggestions)
+      %Retro{format: format} = Repo.get!(Retro, retro_id)
+
+      positions =
+        layout(candidates, suggestions, Formats.categories(format), origin(retro_id, candidates))
+
       now = DateTime.utc_now()
 
       {:ok, _} =
@@ -89,38 +108,83 @@ defmodule RemoteRetro.AI.Apply do
   end
 
   @doc """
-  Pure layout: `[{idea_id, x, y}]` for each suggestion, stacked at grid anchors
-  right of `bbox` (`{min_x, min_y, max_x, max_y}` of card origins, or `nil`).
+  Pure layout: `[{idea_id, x, y}]` for every idea in `ideas` (`%{id, category,
+  body}`), starting at `origin`. Ideas in no suggestion are packed at the top;
+  each suggestion's ideas are cascaded in suggestion order below them (see the
+  moduledoc).
   """
-  def layout(bbox, suggestions) do
-    {origin_x, origin_y} =
-      case bbox do
-        nil -> {0, 0}
-        {_min_x, min_y, max_x, _max_y} -> {max_x + @card_w + @gap, min_y}
+  def layout(ideas, suggestions, category_order, {origin_x, origin_y} = origin \\ {0, 0}) do
+    by_id = Map.new(ideas, &{&1.id, &1})
+    grouped = suggestions |> Enum.flat_map(& &1.idea_ids) |> MapSet.new()
+    singles = Enum.reject(ideas, &MapSet.member?(grouped, &1.id))
+
+    {packed, extent} = Layout.pack(singles, category_order, origin, @single_gap)
+
+    {groups_top, block_w} =
+      case extent do
+        nil -> {origin_y, 0}
+        e -> {e.max_y + @section_gap, e.max_x - origin_x}
       end
 
-    largest = suggestions |> Enum.map(&length(&1.idea_ids)) |> Enum.max(fn -> 1 end)
-    cell_w = @card_w + @offset_x * (largest - 1) + @gap
-    cell_h = @card_h + @offset_y * (largest - 1) + @gap
-    cols = suggestions |> length() |> :math.sqrt() |> ceil() |> max(1)
+    # Aim for about two rows of groups so the board is wide rather than tall
+    # (screens are landscape and Fit is otherwise limited by height).
+    per_row = max(@min_stacks_per_row, ceil(length(suggestions) / 2))
+    row_w = max(block_w, per_row * Grouping.card_w() + (per_row - 1) * @stack_gap)
 
-    for {%{idea_ids: ids}, index} <- Enum.with_index(suggestions),
-        anchor_x = origin_x + rem(index, cols) * cell_w,
-        anchor_y = origin_y + div(index, cols) * cell_h,
-        {id, k} <- Enum.with_index(ids) do
-      {id, (anchor_x + k * @offset_x) * 1.0, (anchor_y + k * @offset_y) * 1.0}
-    end
+    stacks =
+      for %{idea_ids: ids} <- suggestions do
+        cards = Enum.map(ids, &Map.fetch!(by_id, &1))
+        {cards, stack_height(cards)}
+      end
+
+    {stacked, _} =
+      Enum.flat_map_reduce(stacks, {origin_x, groups_top, 0}, fn {cards, height},
+                                                                 {x, top, tallest} ->
+        {x, top, tallest} =
+          if x > origin_x and x + Grouping.card_w() > origin_x + row_w,
+            do: {origin_x, top + tallest + @section_gap, 0},
+            else: {x, top, tallest}
+
+        {cascade(cards, x, top), {x + Grouping.card_w() + @stack_gap, top, max(tallest, height)}}
+      end)
+
+    Enum.map(packed, fn {idea, x, y} -> {idea.id, x, y} end) ++ stacked
   end
 
-  defp bounding_box(retro_id) do
-    case Repo.one(
-           from i in Idea,
-             where: i.retro_id == ^retro_id and not is_nil(i.x) and not is_nil(i.y),
-             select: {min(i.x), min(i.y), max(i.x), max(i.y)}
-         ) do
-      {nil, _, _, _} -> nil
-      nil -> nil
-      bbox -> bbox
+  defp cascade(cards, x, top) do
+    cards
+    |> Enum.map_reduce(top, fn idea, y ->
+      {{idea.id, x * 1.0, y * 1.0}, y + Grouping.card_height(idea.body) - @stack_overlap}
+    end)
+    |> elem(0)
+  end
+
+  defp stack_height(cards) do
+    heights = Enum.map(cards, &Grouping.card_height(&1.body))
+    Enum.sum(heights) - @stack_overlap * (length(heights) - 1)
+  end
+
+  # Start below any positioned idea that is not being re-laid out (ideas
+  # already in multi-idea groups), or at the origin on a fresh board.
+  defp origin(retro_id, candidates) do
+    candidate_ids = Enum.map(candidates, & &1.id)
+
+    kept =
+      Repo.all(
+        from i in Idea,
+          where:
+            i.retro_id == ^retro_id and i.category != ^Formats.action_item() and
+              not is_nil(i.x) and not is_nil(i.y) and i.id not in ^candidate_ids
+      )
+
+    case kept do
+      [] ->
+        {0, 0}
+
+      _ ->
+        left = kept |> Enum.map(& &1.x) |> Enum.min()
+        bottom = kept |> Enum.map(&(&1.y + Grouping.card_height(&1.body))) |> Enum.max()
+        {left, bottom + @section_gap}
     end
   end
 

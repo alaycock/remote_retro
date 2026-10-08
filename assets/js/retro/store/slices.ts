@@ -95,8 +95,11 @@ export interface Toast {
 
 export const uiSlice = createSlice({
   name: "ui",
-  initialState: { currentUserId: 0, toasts: [] as Toast[], connected: false },
+  initialState: { currentUserId: 0, toasts: [] as Toast[], connected: false, devTools: false },
   reducers: {
+    devToolsEnabled: (state) => {
+      state.devTools = true
+    },
     currentUserSet: (state, action: PayloadAction<number>) => {
       state.currentUserId = action.payload
     },
@@ -121,4 +124,4 @@ export const { groupUpserted, groupsReplaced } = groupsSlice.actions
 export const { voteAdded, voteRemoved } = votesSlice.actions
 export const { userUpserted } = usersSlice.actions
 export const { presenceSynced, userTyping } = presenceSlice.actions
-export const { currentUserSet, connectedChanged, toastShown, toastDismissed } = uiSlice.actions
+export const { currentUserSet, devToolsEnabled, connectedChanged, toastShown, toastDismissed } = uiSlice.actions

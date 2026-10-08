@@ -11,10 +11,6 @@
       <a href={~p"/auth/google"} class="btn btn-primary btn-lg">
         <.icon name="hero-arrow-right-end-on-rectangle" class="size-5" /> Sign in with Google
       </a>
-      <a href={~p"/faq"} class="btn btn-ghost btn-lg">Learn more</a>
-      <a href={Layouts.github_url()} class="btn btn-ghost btn-lg">
-        <Layouts.github_icon class="size-5" /> GitHub
-      </a>
     </div>
   </section>
 
@@ -25,7 +21,7 @@
           {"hero-light-bulb", "Share ideas together",
            "Everyone adds ideas at once. See them appear live, with a gentle typing indicator."},
           {"hero-squares-2x2", "Group on a shared board",
-           "Drag sticky notes on an infinite canvas. Gemini can pre-group the obvious ones."},
+           "Drag sticky notes on an infinite canvas. AI can pre-group related ideas for you."},
           {"hero-check-badge", "Vote and commit",
            "Blind voting surfaces what matters most. Finish with owned action items."}
         ]
@@ -42,28 +38,90 @@
     </div>
   </section>
 
-  <section class="mt-20">
-    <h2 class="text-center text-2xl font-semibold">How a retro flows</h2>
-    <ol class="mt-8 grid gap-3 sm:grid-cols-4">
-      <li
-        :for={
-          {{title, body}, step} <-
-            Enum.with_index(
-              [
-                {"Set the stage", "Gather in the lobby and agree to the Prime Directive."},
-                {"Generate ideas", "Happy / Sad / Confused or Start / Stop / Continue."},
-                {"Group, label, vote", "Cluster related ideas, name them, spend three votes."},
-                {"Act", "Discuss the top topics and assign action items."}
-              ],
-              1
-            )
-        }
-        class="rounded-box border border-base-300 p-4"
-      >
-        <span class="text-sm font-semibold text-primary">Step {step}</span>
-        <h3 class="mt-1 font-semibold">{title}</h3>
-        <p class="mt-1 text-sm text-base-content/70">{body}</p>
-      </li>
-    </ol>
+  <section class="mx-auto mt-20 max-w-3xl" aria-labelledby="faq-heading">
+    <h2 id="faq-heading" class="text-center text-2xl font-semibold">Questions</h2>
+    <div class="mt-6 space-y-2">
+      <.faq question="What's a retro?">
+        <p>
+          A retrospective is a regular meeting where a team looks back on its recent work, talks about what went well and what didn't, and agrees on concrete changes to try next.
+        </p>
+        <p>
+          Read more in the <a
+            href="https://scrumguides.org/scrum-guide.html#sprint-retrospective"
+            class="link"
+            rel="noopener"
+            target="_blank"
+          >Scrum Guide</a>.
+        </p>
+      </.faq>
+
+      <.faq question="How much does it cost?">
+        <p>Nothing. Remote Retro is free and open source.</p>
+      </.faq>
+
+      <.faq question="Who can join?">
+        <p>
+          Every retro is private to your team. Share its link to invite your teammates; they sign in with their Google account to join.
+        </p>
+      </.faq>
+
+      <.faq question="How does a retro work?">
+        <p>The facilitator guides the team through each stage:</p>
+        <.stage_steps />
+        <p>
+          Start by agreeing to the <a
+            href="https://retrospectivewiki.org/index.php?title=The_Prime_Directive"
+            class="link"
+            rel="noopener"
+            target="_blank"
+          >Prime Directive</a>, share what made you happy, sad or confused, group and name related ideas, vote on what matters most, then agree on action items with owners. The facilitator can step back a stage at any time.
+        </p>
+      </.faq>
+
+      <.faq question="What features exist?">
+        <ul class="list-disc space-y-1 pl-5">
+          <li>
+            <strong>Real-time ideas:</strong>
+            everyone's ideas appear live, with a typing indicator, and authors can edit or delete their own.
+          </li>
+          <li>
+            <strong>Shared, draggable board:</strong>
+            an infinite canvas you pan and zoom, where you drag sticky notes so they overlap to form groups and label each group in place. A list view shows the same groups for naming them and moving ideas between groups.
+          </li>
+          <li>
+            <strong>AI grouping and labelling:</strong>
+            when grouping starts, AI does a first pass, putting related ideas together and naming a group when an obvious title exists. Everything it does can be changed by hand.
+          </li>
+          <li>
+            <strong>Blind voting:</strong>
+            three votes each, with totals revealed once voting ends.
+          </li>
+          <li>
+            <strong>Action items by email:</strong>
+            when the retro closes, every participant is emailed the action items and their owners, with a link back to the retro.
+          </li>
+        </ul>
+      </.faq>
+
+      <.faq question="How many people should take part?">
+        <p>Ideally no more than about ten. Larger groups make it easy for people to disengage.</p>
+      </.faq>
+
+      <.faq question="How long should a retro take?">
+        <p>
+          Budget about an hour for a sprint retrospective. Much shorter tends to stay on the surface; much longer tends to tire people out.
+        </p>
+      </.faq>
+
+      <.faq question="Our team is in one room. Should we use it?">
+        <p>
+          It works well on a shared screen for ideas, grouping and voting. During discussion and action items, put laptops away and talk face to face.
+        </p>
+      </.faq>
+
+      <.faq question="How is my data handled?">
+        <p>See the <a href={~p"/privacy"} class="link">privacy policy</a>.</p>
+      </.faq>
+    </div>
   </section>
 </Layouts.app>

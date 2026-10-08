@@ -3,7 +3,7 @@ defmodule RemoteRetro.AI.TaskRunnerTest do
   import Mox
   import RemoteRetro.Fixtures
   import ExUnit.CaptureLog
-  alias RemoteRetro.AI.{ClientMock, TaskRunner}
+  alias RemoteRetro.AI.{Apply, ClientMock, TaskRunner}
   alias RemoteRetro.Groups.Group
   alias RemoteRetro.Ideas.Idea
   alias RemoteRetro.Retros.Retro
@@ -66,11 +66,15 @@ defmodule RemoteRetro.AI.TaskRunnerTest do
       assert updated.ai_status == nil
       assert updated.ai_grouped_at != nil
 
+      # Ungrouped b on top; a and c cascade below it, overlapping by stack_overlap.
       new_a = Repo.get!(Idea, a.id)
       new_c = Repo.get!(Idea, c.id)
-      assert new_a.x > 2 * 240 + 200
-      assert {new_c.x - new_a.x, new_c.y - new_a.y} == {12.0, 84.0}
-      assert Repo.get!(Idea, b.id).x == 240.0
+      new_b = Repo.get!(Idea, b.id)
+      assert {new_b.x, new_b.y} == {+0.0, +0.0}
+      assert new_a.y == RemoteRetro.Grouping.card_h() + Apply.section_gap()
+
+      assert {new_c.x - new_a.x, new_c.y - new_a.y} ==
+               {+0.0, (RemoteRetro.Grouping.card_h() - Apply.stack_overlap()) * 1.0}
     end
 
     @tag :needs_groups_sync

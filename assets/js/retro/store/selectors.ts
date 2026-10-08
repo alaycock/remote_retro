@@ -103,8 +103,12 @@ export const selectGroupsWithIdeas = createSelector(
 )
 
 /** Groups by total votes, most first (ties keep creation order). */
+/**
+ * Most votes first; ties go to bigger groups (so lone ideas sink below groups with
+ * the same votes), then to the oldest group so the order is stable.
+ */
 export const selectRankedGroups = createSelector([selectGroupsWithIdeas], (groups) =>
-  [...groups].sort((a, b) => b.voteCount - a.voteCount || a.id - b.id),
+  [...groups].sort((a, b) => b.voteCount - a.voteCount || b.ideas.length - a.ideas.length || a.id - b.id),
 )
 
 /** Display title: label, else the lone idea's body for singletons, else null. */

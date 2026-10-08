@@ -13,7 +13,7 @@ import {
   selectTypingUserIds,
   selectUsersById,
 } from "../store/selectors"
-import { deleteIdea, updateIdea } from "../store/thunks"
+import { deleteIdea, seedSampleIdeas, updateIdea } from "../store/thunks"
 import type { Category, Idea } from "../types"
 
 function TypingIndicator() {
@@ -77,6 +77,7 @@ export function IdeaGeneration() {
   return (
     <div className="mx-auto flex h-full max-w-6xl flex-col gap-3 p-3 sm:p-4">
       <IdeaForm categories={categories} category={category} onCategoryChange={setCategory} />
+      <DevSeedButton />
       <TypingIndicator />
 
       {isDesktop ? (
@@ -108,6 +109,32 @@ export function IdeaGeneration() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+/** Dev builds only: one click to fill the retro with sample ideas for testing. */
+function DevSeedButton() {
+  const dispatch = useAppDispatch()
+  const devTools = useAppSelector((state) => state.ui.devTools)
+  const [busy, setBusy] = useState(false)
+  if (!devTools) return null
+
+  return (
+    <div className="flex justify-end">
+      <button
+        type="button"
+        className="btn btn-xs btn-dash btn-warning gap-1"
+        disabled={busy}
+        onClick={async () => {
+          setBusy(true)
+          await dispatch(seedSampleIdeas())
+          setBusy(false)
+        }}
+      >
+        <span className="hero-beaker-micro size-3.5" aria-hidden="true" />
+        Fill with sample ideas (dev)
+      </button>
     </div>
   )
 }

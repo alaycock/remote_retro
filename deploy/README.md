@@ -77,3 +77,20 @@ image repository. One-time setup (after the first `deploy.sh`):
     deploy/run.sh ./deploy/setup-github.sh
 
 Re-run `deploy.sh` locally when infrastructure or config changes (scaling, env vars, secrets).
+
+## Staging database (local dev)
+
+`remote_retro_staging` lives on the same Cloud SQL instance, owned by its own
+`remote_retro_staging` role, which can't connect to the production database (and other roles
+can't connect to staging). Local dev reaches it through the `staging-db` proxy in docker-dev.
+One-time setup from the repo root (needs the `deploy/run.sh` gcloud sign-in and the
+`~/.config/gcloud-remote-retro` ADC):
+
+    deploy/setup-staging.sh
+
+It stores the role's password in Secret Manager (`remote-retro-staging-db-password`) and
+writes `DEV_DATABASE_URL` into the gitignored `env.sh`. Then recreate the dev container and
+migrate staging:
+
+    cd docker-dev && docker compose up -d --force-recreate app staging-db
+    docker compose exec app mix ecto.migrate

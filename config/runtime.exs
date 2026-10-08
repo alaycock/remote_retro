@@ -44,6 +44,12 @@ if mail_from = System.get_env("MAIL_FROM") do
 end
 
 if config_env() == :dev do
+  # Local dev shares the staging database (through the docker-dev `staging-db` proxy)
+  # when DEV_DATABASE_URL is set in env.sh; otherwise it uses the local Postgres.
+  if dev_db = System.get_env("DEV_DATABASE_URL") do
+    config :remote_retro, RemoteRetro.Repo, url: dev_db, pool_size: 5
+  end
+
   # Reload browser tabs when matching files change.
   config :remote_retro, RemoteRetroWeb.Endpoint,
     live_reload: [
