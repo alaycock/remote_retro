@@ -1,86 +1,31 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code in this repo. Phoenix/Elixir usage rules live in `AGENTS.md` — follow them.
 
-## Commands
-
-### Development
+## Commands (no toolchain on the host — run everything via the dev container)
 
 ```bash
-mix phx.server          # start Phoenix server (port 4000)
-npm run watch           # Webpack dev server with hot reload (run alongside phx.server)
-mix                     # preflight checks + phx.server
+cd docker-dev
+docker compose up -d                                   # mix setup + phx.server on :4000
+docker compose run --rm app mix test                   # backend tests
+docker compose run --rm app mix test path/to_test.exs:42
+docker compose run --rm app mix format
+docker compose run --rm app mix compile --warnings-as-errors
+docker compose run --rm app bash -c "cd assets && npm test && npm run typecheck"   # Vitest + tsc
 ```
 
-### Testing
-
-```bash
-mix test                              # backend unit tests (excludes e2e)
-mix test path/to/test_file.exs        # single backend test file
-mix test path/to/test_file.exs:42     # single test at line number
-mix test.watch                        # backend tests in watch mode
-mix e2e                               # end-to-end feature tests (Wallaby/ChromeDriver required)
-yarn test                             # frontend unit tests (Mocha/Chai/Enzyme)
-yarn test:watch                       # frontend tests in watch mode
-```
-
-### Linting
-
-```bash
-mix lint                # ESLint with auto-fix (Elixir uses Freedom Formatter)
-```
-
-### Database
-
-```bash
-mix ecto.create && mix ecto.migrate                          # dev DB setup
-MIX_ENV=test mix ecto.create && mix ecto.migrate             # test DB setup
-```
+Dev sign-in without Google: `http://localhost:4000/dev/login?email=you@example.com`.
 
 ## Architecture
 
-RemoteRetro is a real-time collaborative retrospective tool. The stack is Elixir/Phoenix (backend) + React/Redux (frontend) communicating over Phoenix Channels (WebSockets).
+- `lib/remote_retro/` — domain contexts: `Accounts`, `Retros` (stage machine `change_stage/3`, snapshot), `Ideas`, `Groups` (`sync/1` reconciles overlap clusters into persisted groups), `Votes` (3 per user), `Grouping` (pure AABB clustering), `Layout`, `Stages`, `Formats`, `Broadcast`.
+- `lib/remote_retro/ai/` — Gemini via Vertex AI (`Gemini` client over Req + Goth ADC, `Prompts`, `Apply`, `TaskRunner`). `AI.Runner`/`AI.Client` are behaviours mocked with Mox in tests. Off unless `GCP_PROJECT` is set; while running, `retros.ai_status` blocks mutations.
+- `lib/remote_retro_web/channels/retro_channel.ex` — one `handle_in` per event; every lookup is scoped to the joined retro. Join replies with a full snapshot; stage changes broadcast `snapshot`.
+- `assets/js/retro/` — React room: `types.ts` (wire contract), `channel.ts`, `store/` (RTK slices, selectors, thunks, `bind_channel.ts`), `stages.tsx` registry + `stages/*`, `components/*`, `board/*` (custom pointer-event pan/zoom canvas, sticky drag, floating group labels).
+- HEEx pages (landing, retros list, FAQ, privacy) under `lib/remote_retro_web/controllers/*_html/`.
 
-### Backend (`lib/`)
+## Invariants
 
-- `lib/remote_retro/` -- core domain models (Retro, Idea, User, Vote, Group, Participation) as Ecto schemas
-- `lib/remote_retro_web/channels/` -- the primary integration point; `RetroChannel` dispatches to discrete handler modules (`idea_handler.ex`, `vote_handler.ex`, `group_handler.ex`, etc.) for each message category
-- `lib/remote_retro_web/controllers/` -- HTTP layer: auth (Google OAuth), retro CRUD, static pages
-- `lib/remote_retro_web/plugs/` -- authentication and authorization middleware
-- `lib/remote_retro_web/services/` -- business logic extracted from controllers/channels (user management, retro management, schema presentation)
-- `lib/tasks/` -- Mix tasks for linting, preflight checks, and e2e test orchestration
-
-The retro lifecycle is driven by state transitions on the `Retro` schema (e.g., `idea-generation` -> `grouping` -> `voting` -> `action-items` -> `done`). Stage transitions broadcast to all channel subscribers.
-
-### Frontend (`web/static/js/`)
-
-- `app.js` -- entry point; sets up Redux store, Phoenix socket connection, and mounts React root
-- `services/retro_channel.js` -- thin wrapper over the Phoenix JS client; pushes events and subscribes to broadcasts, then dispatches Redux actions
-- `redux/` -- centralized state: ideas, votes, groups, users, presences, retro metadata. Reducers handle both optimistic local updates and authoritative server broadcasts.
-- `components/` -- 40+ React components organized around retro stages (IdeationInterface, GroupingInterface, VotingInterface, ActionItemsInterface, etc.) plus shared UI primitives
-- Drag-and-drop uses `react-dnd` with a multi-backend (mouse + touch)
-
-### Data Flow
-
-```
-User action -> React component -> RetroChannel.push()
-                                       |
-                              Phoenix Channel handler
-                                       |
-                              DB write + broadcast
-                                       |
-               All connected clients receive broadcast -> Redux dispatch -> re-render
-```
-
-### Testing Layers
-
-- **Backend unit tests** (`test/` excluding `test/features/`): ExUnit, no browser, fast
-- **End-to-end tests** (`test/features/`): Wallaby + ChromeDriver, full browser, tag `feature_test`
-- **Frontend unit tests** (`test/` at project root via yarn): Mocha + Chai + Enzyme, tests components and Redux reducers in isolation
-
-### Key Configuration
-
-- `config/config.exs` -- base config (database, endpoints, email via Bamboo/SendGrid)
-- `config/dev.exs` / `config/test.exs` / `config/prod.exs` -- environment overrides
-- `webpack.config.js` / `webpack.config.test.js` / `webpack.config.production.js` -- separate Webpack configs per environment
-- Deployment: Gigalixir with hot upgrades; CI via CircleCI (runs unit + e2e tests, then deploys on green)
+- Card size `200×120` and overlap buffer `8` must match between `RemoteRetro.Grouping` and `assets/js/retro/board/geometry.ts`; `test/remote_retro/grouping_parity_test.exs` mirrors `board/cluster_fixtures.ts`.
+- Contexts don't broadcast (except `Retros.change_stage/3` → snapshot and the AI runner); the channel does.
+- Every non-action-item positioned idea belongs to exactly one group (singletons are 1-idea groups); votes are on groups.

@@ -1,0 +1,170 @@
+import type { ComponentType, ReactNode } from "react"
+import { ActionItems } from "./stages/ActionItems"
+import { Closed } from "./stages/Closed"
+import { Grouping } from "./stages/Grouping"
+import { IdeaGeneration } from "./stages/IdeaGeneration"
+import { Lobby } from "./stages/Lobby"
+import { PrimeDirective } from "./stages/PrimeDirective"
+import { Voting } from "./stages/Voting"
+import { STAGES, type Format, type Stage } from "./types"
+
+export interface StageConfig {
+  key: Stage
+  /** Full title, e.g. for the help dialog and mobile stepper. */
+  title: string
+  /** Compact label for the desktop stepper. */
+  short: string
+  component: ComponentType
+  /** Guidance shown in the help dialog (and when the stage is entered). */
+  help: ((format: Format) => ReactNode) | null
+  /** Label on the facilitator's Next button while in this stage. */
+  nextCopy: string | null
+  /** Label on the facilitator's Back button while in this stage. */
+  prevCopy: string | null
+  /**
+   * Stage moves are instant (there's always a Back button). Only a move back that can
+   * lose work asks first; this is that warning.
+   */
+  prevWarning?: string
+  /** Stages that need the full viewport (no centered max-width container). */
+  fullBleed?: boolean
+}
+
+function Guidance({ items }: { items: ReactNode[] }) {
+  return (
+    <ul className="list-disc space-y-1.5 pl-5">
+      {items.map((item, i) => (
+        <li key={i}>{item}</li>
+      ))}
+    </ul>
+  )
+}
+
+const IDEA_GENERATION_GUIDANCE: Record<Format, string[]> = {
+  happy_sad_confused: [
+    "Reflect on the events of this past sprint.",
+    "Submit items that made you happy, sad, or just plain confused.",
+    "Be thoughtful and blameless with your language; we're all here to improve.",
+  ],
+  start_stop_continue: [
+    "Reflect on the practices and habits of the team.",
+    "Suggest practices the team could start, stop, or continue to be more effective.",
+    "Be thoughtful with your language; we're here to improve the team.",
+  ],
+}
+
+
+export const STAGE_CONFIGS: Record<Stage, StageConfig> = {
+  lobby: {
+    key: "lobby",
+    title: "Lobby",
+    short: "Lobby",
+    component: Lobby,
+    help: null,
+    nextCopy: "Begin retro",
+    prevCopy: null,
+  },
+  "prime-directive": {
+    key: "prime-directive",
+    title: "The Prime Directive",
+    short: "Prime directive",
+    component: PrimeDirective,
+    // Guidance is shown on the page itself.
+    help: null,
+    nextCopy: "Idea generation",
+    prevCopy: "Back",
+  },
+  "idea-generation": {
+    key: "idea-generation",
+    title: "Idea generation",
+    short: "Ideas",
+    component: IdeaGeneration,
+    help: (format) => <Guidance items={IDEA_GENERATION_GUIDANCE[format]} />,
+    nextCopy: "Grouping",
+    prevCopy: "Back",
+  },
+  grouping: {
+    key: "grouping",
+    title: "Group & label",
+    short: "Group & label",
+    component: Grouping,
+    help: () => (
+      <Guidance
+        items={[
+          "On the board, drag related ideas so they overlap; overlapping cards form a group. Leave unrelated ideas apart.",
+          "Give each group a short label, right on the board or in the list view.",
+          "Gemini may have already grouped clearly related ideas. Rearrange or relabel anything that doesn't fit.",
+        ]}
+      />
+    ),
+    nextCopy: "Voting",
+    prevCopy: "Back",
+    fullBleed: true,
+  },
+  voting: {
+    key: "voting",
+    title: "Voting",
+    short: "Voting",
+    component: Voting,
+    help: () => (
+      <Guidance
+        items={[
+          <>
+            Vote for the topics you think are <strong>most important</strong> for the team to discuss.
+          </>,
+          "You can put more than one vote on a single topic.",
+          "Voting is blind. Totals are revealed when the facilitator moves on to action items.",
+        ]}
+      />
+    ),
+    nextCopy: "Action items",
+    prevCopy: "Back",
+    prevWarning: "Votes are kept, but votes on any group that gets split or merged while regrouping will be removed.",
+  },
+  "action-items": {
+    key: "action-items",
+    title: "Action items",
+    short: "Action items",
+    component: ActionItems,
+    help: () => (
+      <Guidance
+        items={[
+          "Discuss the highest-voted topics first.",
+          "Capture action items that remove the team's bottlenecks or build on its successes.",
+          "Give every action item an owner.",
+          "If you're in the same room as the facilitator, put your laptop away so you can focus.",
+        ]}
+      />
+    ),
+    nextCopy: "Close retro",
+    prevCopy: "Back",
+  },
+  closed: {
+    key: "closed",
+    title: "Retro closed",
+    short: "Closed",
+    component: Closed,
+    help: () => (
+      <p>
+        The facilitator has closed this retro. Review the summary here at any time, or find it later from{" "}
+        <a href="/retros" className="link">
+          your retros
+        </a>
+        .
+      </p>
+    ),
+    nextCopy: null,
+    prevCopy: "Re-open retro",
+  },
+}
+
+export const STAGE_LIST: StageConfig[] = STAGES.map((stage) => STAGE_CONFIGS[stage])
+
+export function nextStage(stage: Stage): Stage | null {
+  return STAGES[STAGES.indexOf(stage) + 1] ?? null
+}
+
+export function prevStage(stage: Stage): Stage | null {
+  const i = STAGES.indexOf(stage)
+  return i > 0 ? STAGES[i - 1] : null
+}

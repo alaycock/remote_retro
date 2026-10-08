@@ -1,91 +1,75 @@
 defmodule RemoteRetro.Emails do
-  import Bamboo.Email, except: [from: 2]
-  alias RemoteRetro.{Repo, Retro}
-  alias RemoteRetroWeb.IdeaView
+  @moduledoc """
+  Builds the action-items email sent when a retro closes: one message per
+  participant with an email address, so nobody sees anyone else's address.
 
-  def welcome_email(user) do
-    new_email(
-      to: [user.email],
-      from: {"RemoteRetro.org", "do-not-reply@remoteretro.org"},
-      subject: "#{user.given_name}! Welcome to RemoteRetro!",
-      text_body: text_welcome_email_body(user),
-      html_body: html_welcome_email_body(user)
-    )
+  Everything that comes from users (names, action item text) is HTML-escaped
+  in the HTML body.
+  """
+  use Phoenix.VerifiedRoutes, endpoint: RemoteRetroWeb.Endpoint, router: RemoteRetroWeb.Router
+
+  import Swoosh.Email
+  alias RemoteRetro.Mailer
+  alias RemoteRetro.Retros.Retro
+
+  @doc """
+  `action_items` are ideas with `:assignee` preloaded; `participants` are
+  users. Participants without an email address are skipped.
+  """
+  def action_items(%Retro{} = retro, action_items, participants) do
+    date = Calendar.strftime(retro.inserted_at, "%b %-d, %Y")
+    link = url(~p"/retros/#{retro.id}")
+    items = Enum.map(action_items, &{&1.body, owner_name(&1)})
+
+    for user <- participants, is_binary(user.email) and user.email != "" do
+      new()
+      |> to({user.name || "", user.email})
+      |> from(Mailer.from())
+      |> subject("Action items from your retro (#{date})")
+      |> text_body(text_body(user, date, items, link))
+      |> html_body(html_body(user, date, items, link))
+    end
   end
 
-  defp text_welcome_email_body(user) do
+  defp owner_name(%{assignee: %{name: name}}) when is_binary(name) and name != "", do: name
+  defp owner_name(_), do: "Unassigned"
+
+  defp text_body(user, date, items, link) do
+    lines = Enum.map_join(items, "\n", fn {body, owner} -> "- #{body} (owner: #{owner})" end)
+
     """
-    #{user.given_name}!\n\n
-    We're thrilled that you've chosen RemoteRetro.org to aid your team on a path of continuous improvement. You can now visit your user dashboard at https://remoteretro.org/retros, and we encourage you to forward this email to your team(s) with encouragement to check us out!\n\n
-    Looking forward,\n
-    The RemoteRetro Team\n
+    Hi #{greeting_name(user)},
+
+    Here are the action items from your retro on #{date}:
+
+    #{lines}
+
+    You can revisit the whole retro at #{link}
     """
   end
 
-  def action_items_email(retro_id) do
-    retro =
-      Repo.get!(Retro, retro_id)
-      |> Repo.preload([:users, [action_items: :assignee]])
+  defp html_body(user, date, items, link) do
+    list =
+      Enum.map_join(items, "\n", fn {body, owner} ->
+        ~s{    <li>#{esc_multiline(body)} <span style="color:#666">(owner: #{esc(owner)})</span></li>}
+      end)
 
-    participant_emails = Enum.map(retro.users, &Map.get(&1, :email))
-    action_items = format_retro_action_items(retro)
-
-    new_email(
-      to: participant_emails,
-      from: {"RemoteRetro.org", "do-not-reply@remoteretro.org"},
-      subject: "Action items from Retro",
-      text_body: text_retro_action_items(action_items),
-      html_body: html_retro_action_items(action_items, retro_id)
-    )
-  end
-
-  defp html_welcome_email_body(user) do
     """
-    <div>
-      <p>#{user.given_name}!</p>
-      <p>We're thrilled that you've chosen <a href="https://remoteretro.org">RemoteRetro.org</a> to aid your team on a path of continuous improvement. You can now visit your user dashboard at https://remoteretro.org/retros, and we encourage you to forward this email to your team(s) with encouragement to check us out!</p>
-
-      <p>
-        Looking forward,<br>
-        The RemoteRetro Team
-      </p>
+    <div style="font-family:sans-serif;line-height:1.5">
+      <p>Hi #{esc(greeting_name(user))},</p>
+      <p>Here are the action items from your retro on #{esc(date)}:</p>
+      <ul>
+    #{list}
+      </ul>
+      <p>You can revisit the whole retro <a href="#{esc(link)}">here</a>.</p>
     </div>
     """
   end
 
-  defp text_retro_action_items(action_items) do
-    action_items
-    |> Enum.join("\n")
-  end
+  defp greeting_name(user), do: user.given_name || user.name || "there"
 
-  defp html_retro_action_items(action_items, retro_id) do
-    retro_link = "https://remoteretro.org/retros/#{retro_id}"
+  defp esc(value), do: value |> Phoenix.HTML.html_escape() |> Phoenix.HTML.safe_to_string()
 
-    """
-    <div>
-      <p>Greetings!</p>
-      <p>Please find the action items from your retrospective below:</p>
-      #{html_action_item_list(action_items)}
-
-      <p><strong>Note: </strong>If you'd like to review the retro in its entirety, you can always revisit the retro board at its <a href="#{
-      retro_link
-    }">unique link</a>.</p>
-      <hr>
-      <p><small>RemoteRetro is open source software, sponsored and maintained by <a href="https://www.stridenyc.com">Stride Consulting</a>. If you enjoy using it, please take a moment to star the repo at <a href="https://github.com/stride-nyc/remote_retro">https://github.com/stride-nyc/remote_retro</a></small></p>
-    </div>
-    """
-  end
-
-  defp html_action_item_list(action_items) do
-    item_tags =
-      action_items
-      |> Enum.map(fn item -> "<li>#{item}</li>" end)
-
-    "<ul>#{item_tags}</ul>"
-  end
-
-  defp format_retro_action_items(retro) do
-    retro.action_items
-    |> Enum.map(&IdeaView.action_item_to_string/1)
-  end
+  # Action items may span lines (Shift+Enter); keep them, after escaping.
+  defp esc_multiline(value), do: value |> esc() |> String.replace(~r/\r?\n/, "<br>")
 end

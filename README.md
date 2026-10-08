@@ -1,134 +1,125 @@
-# RemoteRetro
+# Remote Retro
 
-[![CircleCI](https://circleci.com/gh/stride-nyc/remote_retro.svg?style=shield)](https://circleci.com/gh/stride-nyc/remote_retro)
-[![Coverage Status](https://coveralls.io/repos/github/stride-nyc/remote_retro/badge.svg)](https://coveralls.io/github/stride-nyc/remote_retro?branch=master)
+Real-time retrospectives for distributed teams: collect ideas, group them on a shared
+pan/zoom board (with optional Gemini assistance), label, vote, and leave with action items.
 
-This repository houses the application code for [RemoteRetro.org](http://remoteretro.org), a free web app that allows distributed teams to conduct Agile retrospectives. It is written in Elixir/Phoenix/React/Redux, and is sponsored by [Stride Consulting](https://www.stridenyc.com).
+Built as a **Highbeam hackday** project: a ground-up rebuild of
+[Remote Retro by Stride Consulting](https://github.com/stride-nyc/remote_retro), the
+original iteration this fork started from. Thanks to Stride for the idea and the years of
+open-source work behind it.
 
-## Table of Contents
+Stack: Elixir 1.20 / Phoenix 1.8 / Postgres 17, React 19 + TypeScript + Redux Toolkit,
+Tailwind v4 + daisyUI. Real-time over Phoenix Channels.
 
-1. [Dev Environment Setup](#dev-environment-setup)
-1. [Tests](#tests)
-1. [Code](#code)
-1. [Contributing](#contributing)
-1. [Code of Conduct](#code-of-conduct)
-1. [Acknowledgements](#acknowledgements)
-1. [License](#license)
+## Retro flow
 
-## Dev Environment Setup
+`lobby → prime directive → idea generation → group & label → voting → action items → closed`
 
-### PostgreSQL
+- The facilitator moves one stage forward or back; going back from `closed` re-opens the retro.
+- **Group & label** has two views: the **board** — an unbounded canvas where you drag stickies
+  so they overlap to form a group and label groups inline (pan by dragging empty space; zoom
+  with ctrl/⌘-scroll, pinch, or the controls) — and a **list** for naming groups.
+- With Gemini enabled, entering Group & label does a conservative first pass: only clearly
+  related ideas are grouped, and a group gets a title only when an obvious one exists. Nothing
+  is auto-labeled later; unlabeled groups stay unlabeled.
+- Closing the retro emails its action items (with owners and a link back) to each participant,
+  one message per person. Re-opening sends nothing; closing again only sends if the action items
+  changed since the last email.
 
-- Install [Homebrew](http://brew.sh/)
-  - **Note:** You'll be prompted to install the command-line developer tools. Do it.
-- Install PostgreSQL via Homebrew:
+## Development
 
-```bash
-brew install postgresql
-
-  # (follow directions supplied by brew output upon successful installation)
-
-createdb
-
-# depending on how you installed postgres, this user may already exist
-createuser -s postgres
-
-# make sure you can log in to default database
-psql -h localhost
-```
-
-#### Elixir/Phoenix Dependencies
-
-- [Install the asdf version manager](https://asdf-vm.com/#/core-manage-asdf-vm)
-- Install Erlang, Elixir, and their dependencies by running `bin/install_erlang_and_elixir_with_dependencies`
-- Create the "remote_retro_dev" database and migrate via `mix ecto.create && mix ecto.migrate`
-- Create the "remote_retro_test" database and migrate via `MIX_ENV=test mix ecto.create && mix ecto.migrate`
-
-#### Node Dependencies
-
-- [Ensure you have the asdf version manager installed](https://asdf-vm.com/#/core-manage-asdf-vm)
-- Install the project's Node version and Node dependencies by running `bin/install_node_with_dependencies`
-
-#### Google OAuth
-
-Authentication within Remote Retro relies on Google OAuth and the Google+ API. To set this up, navigate to the Google API console and create a new project: <https://console.developers.google.com/apis>
-
-Next, click on "Credentials" in the left sidebar nav. On the right hand side, click on the "Create Credentials" button and select "OAuth client ID".
-
-##### Settings
-
-- Application type: Web application
-- Authorized JavaScript origins: `http://localhost:4000`
-- Authorized redirect URIs: `http://localhost:4000/auth/google/callback`
-
-Click on the Create button. Using the information Google provides, add the following lines to your profile and source (or open a new terminal).
+Everything runs in containers — no Elixir, Node or Postgres on your machine. You need Docker
+([OrbStack](https://orbstack.dev) or Docker Desktop).
 
 ```bash
-export REMOTE_RETRO_GOOGLE_OAUTH_CLIENT_ID="<Client Id>"
-export REMOTE_RETRO_GOOGLE_OAUTH_CLIENT_SECRET="<Client secret>"
-export REMOTE_RETRO_GOOGLE_OAUTH_REDIRECT_URI="http://localhost:4000/auth/google/callback"
+cd docker-dev
+docker compose up -d            # runs `mix setup`, then the app at http://localhost:4000
+docker compose logs -f app
 ```
 
-Finally, [enable](https://console.developers.google.com/apis/api/plus.googleapis.com/overview) the Google+ API for your project.
+Compose starts Postgres 17 and an app container (Elixir 1.20 / OTP 28, Node 24). `deps/`,
+`_build/`, `assets/node_modules/` and the database live in Docker volumes, not in your checkout.
 
-#### And Voila
+**Signing in.** In dev you can skip Google entirely:
+`http://localhost:4000/dev/login?email=you@example.com` (optional `&name=…&picture=…`).
 
-Start Phoenix endpoint with `mix`
-
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
-
-## Tests
-
-To continually execute the backend unit tests on file change:
+**Common commands** (from `docker-dev/`):
 
 ```bash
-mix test.watch
+docker compose run --rm app mix test                                         # backend tests
+docker compose run --rm app bash -c "cd assets && npm test && npm run typecheck"  # frontend tests
+docker compose run --rm app mix format
+docker compose exec app bash                                                  # shell in the running app
+docker compose exec app mix ecto.migrate
 ```
 
-To execute the backend unit tests manually:
+**Email.** In dev nothing leaves the machine: closing a retro drops its emails into the
+mailbox preview at http://localhost:4000/dev/mailbox.
+
+**Teardown** (containers, volumes and the image):
 
 ```bash
-mix test
+docker compose down -v --rmi local
 ```
 
-To execute the end-to-end tests:
+### Local configuration: `env.sh`
+
+Put secrets in a gitignored `env.sh` at the repo root as `export KEY=value` lines. Compose
+loads it into the app container automatically (no need to `source` it); restart with
+`docker compose up -d --force-recreate app` after editing.
 
 ```bash
-mix e2e
+# Google sign-in (optional in dev — /dev/login works without it)
+export REMOTE_RETRO_GOOGLE_OAUTH_CLIENT_ID=...
+export REMOTE_RETRO_GOOGLE_OAUTH_CLIENT_SECRET=...
+export REMOTE_RETRO_GOOGLE_OAUTH_REDIRECT_URI=http://localhost:4000/auth/google/callback
+
+# Gemini grouping (optional)
+export GCP_PROJECT=your-project-id
 ```
 
-To continually execute the client-side unit tests on file change:
+**Google sign-in:** create an OAuth client (type *Web application*) in the Google Cloud
+Console under *APIs & Services → Credentials*, with authorized redirect URI
+`http://localhost:4000/auth/google/callback`.
+
+### Gemini (optional)
+
+Gemini runs on Vertex AI using Application Default Credentials. The dev container reads them
+from `~/.config/gcloud-remote-retro` (mounted read-only), kept separate from any other gcloud
+identity you use. You don't need gcloud installed — run it in a throwaway container:
 
 ```bash
-yarn test:watch
+# 1. Sign in (prints a URL; open it, sign in, paste the code back)
+docker run --rm -it -v ~/.config/gcloud-remote-retro:/root/.config/gcloud \
+  gcr.io/google.com/cloudsdktool/google-cloud-cli:slim \
+  gcloud auth application-default login --no-launch-browser
+
+# 2. Bill Vertex usage to your project
+docker run --rm -v ~/.config/gcloud-remote-retro:/root/.config/gcloud \
+  gcr.io/google.com/cloudsdktool/google-cloud-cli:slim \
+  gcloud auth application-default set-quota-project <PROJECT_ID>
 ```
 
-To execute the client-side unit tests manually:
+On the project, enable the **Vertex AI API** and give the account you signed in with the
+**Vertex AI User** role (`roles/aiplatform.user`). Then add `export GCP_PROJECT=<PROJECT_ID>`
+to `env.sh` and recreate the app container. While Gemini works, the room shows an overlay
+and blocks edits; if it fails or takes longer than 45s, the room unblocks and carries on.
 
-```bash
-yarn test
-```
+## Configuration reference
 
-## Code
+| Env var | Purpose |
+|---|---|
+| `REMOTE_RETRO_GOOGLE_OAUTH_CLIENT_ID` / `_SECRET` / `_REDIRECT_URI` | Google sign-in |
+| `GCP_PROJECT` | Enables Gemini grouping (unset = off) |
+| `GCP_LOCATION` | Vertex AI location, default `global` |
+| `GEMINI_MODEL` | Default `gemini-2.5-flash` |
+| `GOOGLE_APPLICATION_CREDENTIALS` | ADC file (service account, user, or impersonated). Set by the dev container; on Cloud Run omit it to use the attached service account |
+| `SENDGRID_API_KEY` | Sends the action-items email on close (prod). Unset = emails are only logged, with a boot warning |
+| `MAIL_FROM` | Sender, e.g. `"Remote Retro" <retro@example.com>`; default `"Remote Retro" <no-reply@remoteretro.local>` (warns in prod) |
+| `DATABASE_URL`, `SECRET_KEY_BASE`, `PHX_HOST`, `PORT` | Standard Phoenix production settings |
 
-To run the local eslint:
-
-```bash
-mix lint
-```
-
-## Contributing
-
-[Contributing Guidelines](CONTRIBUTING.md)
-
-## Code of Conduct
-
-[The Contributor Covenant](CODE_OF_CONDUCT.md)
-
-## Acknowledgements
-
-Many thanks to the project's contributors for devoting their time, energy, and passion, and additional thanks go out to the leadership of [Stride Consulting](https://www.stridenyc.com) for giving this project the opportunity it needed to bloom.
+For a tour of the code, see [`CLAUDE.md`](CLAUDE.md).
 
 ## License
 
-[MIT](LICENSE)
+MIT — see [LICENSE](LICENSE). Original work © Stride Consulting.

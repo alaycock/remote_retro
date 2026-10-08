@@ -1,0 +1,223 @@
+defmodule RemoteRetroWeb.Layouts do
+  @moduledoc """
+  This module holds layouts and related functionality
+  used by your application.
+  """
+  use RemoteRetroWeb, :html
+
+  # Embed all files in layouts/* within this module.
+  # The default root.html.heex file contains the HTML
+  # skeleton of your application, namely HTML headers
+  # and other static content.
+  embed_templates "layouts/*"
+
+  @doc """
+  Renders your app layout.
+
+  This function is typically invoked from every template,
+  and it often contains your application menu, sidebar,
+  or similar.
+
+  ## Examples
+
+      <Layouts.app flash={@flash}>
+        <h1>Content</h1>
+      </Layouts.app>
+
+  """
+  attr :flash, :map, required: true, doc: "the map of flash messages"
+  attr :current_user, :map, default: nil
+  attr :wide, :boolean, default: false, doc: "use a wider content column"
+  slot :inner_block, required: true
+
+  def app(assigns) do
+    ~H"""
+    <div class="flex min-h-dvh flex-col bg-base-100">
+      <header class="sticky top-0 z-30 border-b border-base-300 bg-base-100/90 backdrop-blur">
+        <nav class="mx-auto flex max-w-5xl items-center gap-3 px-4 py-2.5 sm:px-6">
+          <a
+            href={if @current_user, do: ~p"/retros", else: ~p"/"}
+            class="flex items-center gap-2 font-semibold"
+          >
+            <span class="grid size-8 place-items-center rounded-lg bg-primary text-primary-content">
+              <.icon name="hero-arrow-path-rounded-square" class="size-5" />
+            </span>
+            Remote Retro
+          </a>
+          <div class="flex-1" />
+          <a :if={@current_user} href={~p"/retros"} class="btn btn-ghost btn-sm hidden sm:inline-flex">
+            Your retros
+          </a>
+          <a href={~p"/faq"} class="btn btn-ghost btn-sm">FAQ</a>
+          <a
+            href={github_url()}
+            class="btn btn-ghost btn-sm btn-circle"
+            aria-label="Source on GitHub"
+            title="Source on GitHub"
+          >
+            <.github_icon class="size-5" />
+          </a>
+          <.theme_toggle />
+          <div :if={@current_user} class="dropdown dropdown-end">
+            <div
+              tabindex="0"
+              role="button"
+              class="btn btn-ghost btn-sm btn-circle avatar"
+              aria-label="Account menu"
+            >
+              <img
+                :if={@current_user.picture}
+                src={@current_user.picture}
+                referrerpolicy="no-referrer"
+                class="size-full rounded-full object-cover"
+                alt=""
+              />
+              <.icon :if={!@current_user.picture} name="hero-user-circle" class="size-7" />
+            </div>
+            <ul
+              tabindex="0"
+              class="dropdown-content menu z-40 mt-2 w-52 rounded-box bg-base-100 p-2 shadow-lg ring-1 ring-base-300"
+            >
+              <li class="menu-title truncate">{@current_user.name}</li>
+              <li><a href={~p"/retros"}>Your retros</a></li>
+              <li><a href={~p"/logout"}>Sign out</a></li>
+            </ul>
+          </div>
+        </nav>
+      </header>
+
+      <main class="flex-1 px-4 py-10 sm:px-6 sm:py-14">
+        <div class={["mx-auto", if(@wide, do: "max-w-5xl", else: "max-w-3xl")]}>
+          {render_slot(@inner_block)}
+        </div>
+      </main>
+
+      <footer class="border-t border-base-300 px-4 py-6 text-sm text-base-content/60">
+        <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
+          <span>Remote Retro · open-source retrospectives</span>
+          <span class="flex gap-4">
+            <a href={~p"/faq"} class="link link-hover">FAQ</a>
+            <a href={~p"/privacy"} class="link link-hover">Privacy</a>
+            <a href={github_url()} class="link link-hover">GitHub</a>
+          </span>
+        </div>
+      </footer>
+    </div>
+
+    <.flash_group flash={@flash} />
+    """
+  end
+
+  @doc """
+  Shows the flash group with standard titles and content.
+
+  ## Examples
+
+      <.flash_group flash={@flash} />
+  """
+  attr :flash, :map, required: true, doc: "the map of flash messages"
+  attr :id, :string, default: "flash-group", doc: "the optional id of flash container"
+
+  def flash_group(assigns) do
+    ~H"""
+    <div id={@id} aria-live="polite">
+      <.flash kind={:info} flash={@flash} />
+      <.flash kind={:error} flash={@flash} />
+
+      <.flash
+        id="client-error"
+        kind={:error}
+        title="We can't find the internet"
+        phx-disconnected={
+          show(".phx-client-error #client-error")
+          |> JS.remove_attribute("hidden", to: ".phx-client-error #client-error")
+        }
+        phx-connected={hide("#client-error") |> JS.set_attribute({"hidden", ""})}
+        hidden
+      >
+        Attempting to reconnect
+        <.icon name="hero-arrow-path" class="ml-1 size-3 motion-safe:animate-spin" />
+      </.flash>
+
+      <.flash
+        id="server-error"
+        kind={:error}
+        title="Something went wrong!"
+        phx-disconnected={
+          show(".phx-server-error #server-error")
+          |> JS.remove_attribute("hidden", to: ".phx-server-error #server-error")
+        }
+        phx-connected={hide("#server-error") |> JS.set_attribute({"hidden", ""})}
+        hidden
+      >
+        Attempting to reconnect
+        <.icon name="hero-arrow-path" class="ml-1 size-3 motion-safe:animate-spin" />
+      </.flash>
+    </div>
+    """
+  end
+
+  def github_url, do: "https://github.com/alaycock/remote_retro"
+
+  attr :class, :string, default: nil
+
+  def github_icon(assigns) do
+    ~H"""
+    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" class={@class}>
+      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+    </svg>
+    """
+  end
+
+  @doc """
+  Theme picker: one icon reflecting the current choice, with a dropdown of
+  system / light / dark. The inline script in root.html.heex applies the theme
+  and sets `data-theme` / `data-theme-source` on <html>, which drive the icon.
+  """
+  def theme_toggle(assigns) do
+    ~H"""
+    <div class="dropdown dropdown-end">
+      <div tabindex="0" role="button" class="btn btn-ghost btn-sm btn-circle" aria-label="Theme">
+        <.icon
+          name="hero-computer-desktop"
+          class="size-5 hidden [[data-theme-source=system]_&]:inline-block"
+        />
+        <.icon
+          name="hero-sun"
+          class="size-5 hidden [[data-theme=light][data-theme-source=user]_&]:inline-block"
+        />
+        <.icon
+          name="hero-moon"
+          class="size-5 hidden [[data-theme=dark][data-theme-source=user]_&]:inline-block"
+        />
+      </div>
+      <ul
+        tabindex="0"
+        class="dropdown-content menu z-40 mt-2 w-40 rounded-box bg-base-100 p-2 shadow-lg ring-1 ring-base-300"
+      >
+        <li :for={{key, icon, label} <- theme_options()}>
+          <button
+            type="button"
+            phx-click={JS.dispatch("phx:set-theme")}
+            data-phx-theme={key}
+            class={[
+              key == "system" && "[[data-theme-source=system]_&]:menu-active",
+              key != "system" && "[[data-theme=#{key}][data-theme-source=user]_&]:menu-active"
+            ]}
+          >
+            <.icon name={icon} class="size-4" /> {label}
+          </button>
+        </li>
+      </ul>
+    </div>
+    """
+  end
+
+  defp theme_options do
+    [
+      {"system", "hero-computer-desktop", "Device"},
+      {"light", "hero-sun", "Light"},
+      {"dark", "hero-moon", "Dark"}
+    ]
+  end
+end

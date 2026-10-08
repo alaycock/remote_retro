@@ -1,81 +1,107 @@
 defmodule RemoteRetroWeb do
   @moduledoc """
-  A module that keeps using definitions for controllers,
-  views and so on.
+  The entrypoint for defining your web interface, such
+  as controllers, components, channels, and so on.
 
   This can be used in your application as:
 
       use RemoteRetroWeb, :controller
-      use RemoteRetroWeb, :view
+      use RemoteRetroWeb, :html
 
-  The definitions below will be executed for every view,
-  controller, etc, so keep them short and clean, focused
+  The definitions below will be executed for every controller,
+  component, etc, so keep them short and clean, focused
   on imports, uses and aliases.
 
   Do NOT define functions inside the quoted expressions
-  below.
+  below. Instead, define additional modules and import
+  those modules here.
   """
 
-  def model do
-    quote do
-      use Ecto.Schema
-
-      import Ecto
-      import Ecto.Changeset
-      import Ecto.Query
-    end
-  end
-
-  def controller do
-    quote do
-      use Phoenix.Controller, namespace: RemoteRetroWeb
-
-      alias RemoteRetro.Repo
-      import Ecto
-      import Ecto.Query
-
-      alias RemoteRetroWeb.Router.Helpers, as: Routes
-      alias RemoteRetroWeb.Gettext
-    end
-  end
-
-  def view do
-    quote do
-      use Phoenix.View,
-        root: "lib/remote_retro_web/templates",
-        namespace: RemoteRetroWeb
-
-      # Import convenience functions from controllers
-      import Phoenix.Controller, only: [get_csrf_token: 0, get_flash: 2, view_module: 1]
-
-      # Use all HTML functionality (forms, tags, etc)
-      use Phoenix.HTML
-
-      alias RemoteRetroWeb.Router.Helpers, as: Routes
-      import RemoteRetroWeb.ErrorHelpers
-      import RemoteRetroWeb.Gettext
-    end
-  end
+  def static_paths, do: ~w(assets fonts images favicon.ico robots.txt)
 
   def router do
     quote do
-      use Phoenix.Router
+      use Phoenix.Router, helpers: false
+
+      # Import common connection and controller functions to use in pipelines
+      import Plug.Conn
+      import Phoenix.Controller
+      import Phoenix.LiveView.Router
     end
   end
 
   def channel do
     quote do
       use Phoenix.Channel
+    end
+  end
 
-      alias RemoteRetro.Repo
-      import Ecto
-      import Ecto.Query
-      alias RemoteRetroWeb.Gettext
+  def controller do
+    quote do
+      use Phoenix.Controller, formats: [:html, :json]
+
+      import Plug.Conn
+
+      unquote(verified_routes())
+    end
+  end
+
+  def live_view do
+    quote do
+      use Phoenix.LiveView
+
+      unquote(html_helpers())
+    end
+  end
+
+  def live_component do
+    quote do
+      use Phoenix.LiveComponent
+
+      unquote(html_helpers())
+    end
+  end
+
+  def html do
+    quote do
+      use Phoenix.Component
+
+      # Import convenience functions from controllers
+      import Phoenix.Controller,
+        only: [get_csrf_token: 0, view_module: 1, view_template: 1]
+
+      # Include general helpers for rendering HTML
+      unquote(html_helpers())
+    end
+  end
+
+  defp html_helpers do
+    quote do
+      # HTML escaping functionality
+      import Phoenix.HTML
+      # Core UI components
+      import RemoteRetroWeb.CoreComponents
+
+      # Common modules used in templates
+      alias Phoenix.LiveView.JS
+      alias RemoteRetroWeb.Layouts
+
+      # Routes generation with the ~p sigil
+      unquote(verified_routes())
+    end
+  end
+
+  def verified_routes do
+    quote do
+      use Phoenix.VerifiedRoutes,
+        endpoint: RemoteRetroWeb.Endpoint,
+        router: RemoteRetroWeb.Router,
+        statics: RemoteRetroWeb.static_paths()
     end
   end
 
   @doc """
-  When used, dispatch to the appropriate controller/view/etc.
+  When used, dispatch to the appropriate controller/live_view/etc.
   """
   defmacro __using__(which) when is_atom(which) do
     apply(__MODULE__, which, [])

@@ -5,7 +5,7 @@
 # Inside the script, you can read and write to any of your
 # repositories directly:
 #
-#     RemoteRetro.Repo.insert!(%RemoteRetro.SomeModel{})
+#     RemoteRetro.Repo.insert!(%RemoteRetro.SomeSchema{})
 #
 # We recommend using the bang functions (`insert!`, `update!`
 # and so on) as they will fail if something goes wrong.

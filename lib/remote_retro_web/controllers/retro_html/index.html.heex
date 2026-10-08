@@ -1,0 +1,72 @@
+<Layouts.app flash={@flash} current_user={@current_user}>
+  <section class="card bg-base-200">
+    <div class="card-body">
+      <h1 class="card-title text-2xl">Start a retro</h1>
+      <p class="text-base-content/70">Pick a format, then share the link with your team.</p>
+      <.form for={%{}} action={~p"/retros"} method="post" class="mt-2 space-y-4">
+        <fieldset>
+          <legend class="sr-only">Format</legend>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <label
+              :for={{format, i} <- Enum.with_index(@formats)}
+              class="flex cursor-pointer items-start gap-3 rounded-box border border-base-300 bg-base-100 p-4 transition hover:border-primary has-checked:border-primary has-checked:ring-2 has-checked:ring-primary/30"
+            >
+              <input
+                type="radio"
+                name="format"
+                value={format}
+                class="radio radio-primary mt-0.5"
+                checked={i == 0}
+              />
+              <span>
+                <span class="block font-medium">{format_name(format)}</span>
+                <span class="block text-sm text-base-content/60">
+                  {if format == "happy_sad_confused",
+                    do: "Reflect on how the last sprint felt.",
+                    else: "Tune the team's habits and practices."}
+                </span>
+              </span>
+            </label>
+          </div>
+        </fieldset>
+        <button class="btn btn-primary">
+          <.icon name="hero-plus" class="size-5" /> Create retro
+        </button>
+      </.form>
+    </div>
+  </section>
+
+  <section class="mt-12">
+    <h2 class="text-lg font-semibold">Your retros</h2>
+    <div
+      :if={@retros == []}
+      class="mt-4 rounded-box border border-dashed border-base-300 p-8 text-center text-base-content/60"
+    >
+      No retros yet. Create one above to get started.
+    </div>
+    <ul
+      :if={@retros != []}
+      class="mt-4 divide-y divide-base-300 rounded-box border border-base-300"
+    >
+      <li :for={retro <- @retros}>
+        <.link
+          navigate={~p"/retros/#{retro.id}"}
+          class="flex items-center justify-between gap-4 px-4 py-3 transition hover:bg-base-200"
+        >
+          <span class="min-w-0">
+            <span class="block font-medium">{format_name(retro.format)}</span>
+            <span class="block text-sm text-base-content/60">
+              {Calendar.strftime(retro.inserted_at, "%b %-d, %Y")}
+            </span>
+          </span>
+          <span class={[
+            "badge badge-sm shrink-0",
+            if(retro.stage == "closed", do: "badge-ghost", else: "badge-primary badge-soft")
+          ]}>
+            {stage_name(retro.stage)}
+          </span>
+        </.link>
+      </li>
+    </ul>
+  </section>
+</Layouts.app>
