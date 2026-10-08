@@ -26,10 +26,11 @@ export function StageStepper({ stage }: { stage: Stage }) {
               <span
                 aria-current={state === "current" ? "step" : undefined}
                 className={[
-                  "rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap transition-colors",
-                  state === "current" && "bg-primary text-primary-content shadow-sm",
-                  state === "done" && "bg-success/15 text-success",
-                  state === "upcoming" && "text-base-content/40",
+                  // Every step is a pill with a 1px border, so states differ only in colour.
+                  "rounded-full border px-2.5 py-1 text-xs font-medium whitespace-nowrap transition-colors",
+                  state === "current" && "border-transparent bg-primary text-primary-content shadow-sm",
+                  state === "done" && "border-transparent bg-success/15 text-success",
+                  state === "upcoming" && "border-base-300 bg-base-100 text-base-content/50",
                 ]
                   .filter(Boolean)
                   .join(" ")}
