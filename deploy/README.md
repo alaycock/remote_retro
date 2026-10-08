@@ -50,3 +50,19 @@ as a secret and add it to the service:
 
     deploy/run.sh gcloud run services logs read remote-retro --region us-central1 --limit 100
     deploy/run.sh gcloud sql connect remote-retro-db --user remote_retro   # needs psql in the image
+
+## Continuous deployment (GitHub Actions)
+
+`.github/workflows/deploy.yml` runs on every push to `master`: backend + frontend tests, then
+(only if they pass) builds the image on the runner, pushes it to Artifact Registry and rolls a
+new Cloud Run revision. Only the image changes; env vars, secrets and scaling set by
+`deploy.sh` carry over.
+
+GitHub authenticates with **Workload Identity Federation** — no keys stored in GitHub. The
+trust is limited to `alaycock/remote_retro` on `refs/heads/master`, and the deployer service
+account can only deploy revisions, act as the runtime service account, and push to the one
+image repository. One-time setup (after the first `deploy.sh`):
+
+    deploy/run.sh ./deploy/setup-github.sh
+
+Re-run `deploy.sh` locally when infrastructure or config changes (scaling, env vars, secrets).
