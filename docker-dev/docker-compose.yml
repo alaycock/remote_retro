@@ -27,10 +27,10 @@ services:
     working_dir: /app
     stdin_open: true
     tty: true
-    environment:
-      REMOTE_RETRO_GOOGLE_OAUTH_CLIENT_ID: ${REMOTE_RETRO_GOOGLE_OAUTH_CLIENT_ID:-}
-      REMOTE_RETRO_GOOGLE_OAUTH_CLIENT_SECRET: ${REMOTE_RETRO_GOOGLE_OAUTH_CLIENT_SECRET:-}
-      REMOTE_RETRO_GOOGLE_OAUTH_REDIRECT_URI: ${REMOTE_RETRO_GOOGLE_OAUTH_REDIRECT_URI:-http://localhost:4000/auth/google/callback}
+    # Google OAuth creds (export KEY=value lines); gitignored
+    env_file:
+      - path: ../env.sh
+        required: false
     volumes:
       - ..:/app
       # build artifacts live in volumes, not on the host

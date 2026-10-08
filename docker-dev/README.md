@@ -11,9 +11,9 @@ deps/, _build/, node_modules/ and the DB live in Docker volumes, not on the host
     docker compose run --rm app yarn test
     docker compose exec app bash         # shell inside running app
 
-Google OAuth login: export REMOTE_RETRO_GOOGLE_OAUTH_CLIENT_ID / _SECRET in your shell
-before `docker compose up` (see root README). Redirect URI defaults to
-http://localhost:4000/auth/google/callback.
+Google OAuth login: put `export REMOTE_RETRO_GOOGLE_OAUTH_*=...` lines in ../env.sh
+(gitignored); compose loads it into the app container automatically via env_file.
+No need to source it first. Restart with `docker compose up -d app` after editing.
 
 If you re-run `yarn install`, restore the semantic CSS afterwards (GNU cp nests
 the dir instead of merging like macOS cp does):
