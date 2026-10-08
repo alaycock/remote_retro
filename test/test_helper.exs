@@ -1,4 +1,4 @@
-ExUnit.start(exclude: [:skip])
-
-# Create the database, run migrations, and start the test transaction.
+Mox.defmock(RemoteRetro.AI.RunnerMock, for: RemoteRetro.AI.Runner)
+Mox.defmock(RemoteRetro.AI.ClientMock, for: RemoteRetro.AI.Client)
+ExUnit.start()
 Ecto.Adapters.SQL.Sandbox.mode(RemoteRetro.Repo, :manual)

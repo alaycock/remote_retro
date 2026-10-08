@@ -1,59 +1,40 @@
-# App artifacts
-/_build
-/db
-/deps
-/*.ez
+# The directory Mix will write compiled artifacts to.
+/_build/
 
-TODOS.*
+# If you run "mix test --cover", coverage assets end up here.
+/cover/
 
-# Test artifacts
-screenshots/
-# Generated on crash by the VM
+# The directory Mix downloads your dependencies sources to.
+/deps/
+
+# Where 3rd-party dependencies like ExDoc output generated docs.
+/doc/
+
+# Ignore .fetch files in case you like to edit your project deps locally.
+/.fetch
+
+# If the VM crashes, it generates a dump, let's ignore it too.
 erl_crash.dump
 
-# Static artifacts
-/node_modules
+# Also ignore archive artifacts (built via "mix archive.build").
+*.ez
 
-# Since we are building assets from web/static,
-# we ignore priv/static. You may want to comment
-# this depending on your deployment strategy.
-/priv/static/*
-!/priv/static/css
-/priv/static/css/*
-!/priv/static/css/semantic-ui
-/priv/static/css/semantic-ui/*
-!/priv/static/css/semantic-ui/semantic.min.css
-!/priv/static/css/semantic-ui/postcss.config.js
-!/priv/static/css/semantic-ui/themes
-!/priv/static/css/semantic-ui/font
+# Temporary files, for example, from tests.
+/tmp/
 
-# ignore dll manifest and generated vendor bundle, as these are built on every dev build and deploy
-web/static/js/dll/*
+# Ignore package tarball (built via "mix hex.build").
+remote_retro-*.tar
 
-# The config/prod.secret.exs file by default contains sensitive
-# data and you should not commit it into version control.
-#
-# Alternatively, you may comment the line below and commit the
-# secrets file as long as you replace its contents by environment
-# variables.
-/config/prod.secret.exs
+# Ignore assets that are produced by build tools.
+/priv/static/assets/
 
-# Intellij ide config
-.idea
+# Ignore digested assets cache.
+/priv/static/cache_manifest.json
 
-/priv/static/robots.txt
-.DS_Store
+# In case you use Node.js/npm, you want to ignore these.
+npm-debug.log
+/assets/node_modules/
 
-package-lock.json
-npm-debug.log*
-.eslintcache
-browser_logs.log
-
-# Ignore .vscode directory
-.vscode
-
-# Ignore local dev config files like zsh
-.zshrc
 
 # local dev secrets
 /env.sh

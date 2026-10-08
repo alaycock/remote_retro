@@ -1,53 +1,38 @@
-use Mix.Config
+import Config
+
+# Configure your database
+#
+# The MIX_TEST_PARTITION environment variable can be used
+# to provide built-in test partitioning in CI environment.
+# Run `mix help test` for more information.
+config :remote_retro, RemoteRetro.Repo,
+  username: "postgres",
+  password: "postgres",
+  hostname: "localhost",
+  database: "remote_retro_test#{System.get_env("MIX_TEST_PARTITION")}",
+  pool: Ecto.Adapters.SQL.Sandbox,
+  pool_size: System.schedulers_online() * 2
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
 config :remote_retro, RemoteRetroWeb.Endpoint,
-  http: [port: 4001],
-  server: true
-
-config :remote_retro, :sql_sandbox, true
-
-config :wallaby, screenshot_on_failure: true
-config :bamboo, :refute_timeout, 10
-
-{:ok, file} = File.open("browser_logs.log", [:write])
-Application.put_env(:wallaby, :js_logger, file)
+  http: [ip: {127, 0, 0, 1}, port: 4002],
+  secret_key_base: "eRBJUR83mqBiD2MXnWgVxC1llfPdaw6CnO4AgtXLi5ac2L3uDm834Do73GCOCIiw",
+  server: false
 
 # Print only warnings and errors during test
-config :logger, level: :warn
+config :logger, level: :warning
 
-# allow test users to authenticate
-config :remote_retro, :auth_controller, RemoteRetroWeb.MockAuthController
+# Initialize plugs at runtime for faster test compilation
+config :phoenix, :plug_init_mode, :runtime
 
-config :honeybadger,
-  environment_name: :test
+# Enable helpful, but potentially expensive runtime checks
+config :phoenix_live_view,
+  enable_expensive_runtime_checks: true
 
-config :remote_retro, RemoteRetro.Mailer, adapter: Bamboo.TestAdapter
-config :remote_retro, plug_init_mode: :runtime
+# Sort query params output of verified routes for robust url comparisons
+config :phoenix,
+  sort_verified_routes_query_params: true
 
-# Configure your database
-config :remote_retro, RemoteRetro.Repo,
-  username: "postgres",
-  password: "postgres",
-  database: "remote_retro_test",
-  hostname: "localhost",
-  ownership_timeout: 60_000,
-  pool: Ecto.Adapters.SQL.Sandbox
-
-config :remote_retro, :oauth_client, RemoteRetro.OAuth.Client.InMemory
-config :remote_retro, :allow_user_masquerade, true
-
-config :remote_retro, :mock_google_user_info, %{
-  "email" => "mrtestuser@one.com",
-  "email_verified" => "true",
-  "family_name" => "User",
-  "gender" => "male",
-  "given_name" => "Test",
-  "kind" => "plus#personOpenIdConnect",
-  "locale" => "en",
-  "name" => "Test User",
-  "picture" => "https://lh3.googleusercontent.com/a-/AAuE7mBrZMjcPzGHlf3FroPgxpVoVxt33dY3L8l8o4ncoj1GgIDVGMvtPn8Zvz26oo0CFAbmI5gPSEJzJrK9Nxma-6_Qhop6u-1JK8_-K3LLtLj1ZDic6xx9YeGUDsHEF3VrjqzSvoQWkIsEHVsUnTOogh4EuVUMSB-8ftR-bjfZROHxy4Py_4WAn773RKF9ZTbpb7ajTHkBwS7o5GF3riAPEJ9f3XUD9dASlSpRjYq7_hWzXPSAQ3on-A16bKUtily8RprssgIAc63D21XxYqkulhXhUDgDjVMVhhXmgCj1rwzBV_jd8CCJlQx7dJ4Tn5gl2Ur00TFmrKIx0-1FDE8Kiiu6wRmf7rXEFN450zW0PqRjkttiYQj3HdbiPfFOVqvlKcp_4I9o9NwqbdQWhyO_cvAhCAa9B8s8vSc5Dtg5qfA389KnRJu9hPYPhYsUc1bFSLebKG-VKUPhyzMue8Q5pTWeystzI6Zs_ALxpbobS7wPRBE_s48pV5vFWbumWTeRxc00rvINs88unMwsMS8Vet4LfvEdIm00mp5aePI73hLQXVzKI0o4XTMmKKGOM2WhZxag3WVvjMZAfGExvScPNerOyK3pCNK4RLI2DQMfvSIJENlX155kmqYafB7-bJ_pzlDdbZaKA6ShGam9UMuKnIeAHBbKW3c-9blUIu4d92fOMfLWFASzz3YSC9p5OUCe_3wexVQ9NSMhwWNr0LDQ04gxt2X3AOoaLyYH_t8H1mnBW0z0jRC0FxmK5-r-xLY",
-  "profile" => "https://plus.google.com/108658712426577966861",
-  "sub" => "108658712426577966861",
-}
+config :remote_retro, :ai_runner, RemoteRetro.AI.RunnerMock
+config :remote_retro, :ai_client, RemoteRetro.AI.ClientMock

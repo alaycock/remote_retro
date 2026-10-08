@@ -1,60 +1,38 @@
 defmodule RemoteRetroWeb.RetroChannel do
+  @moduledoc """
+  Real-time room for a single retro. Joins reply with a full snapshot;
+  see the contract in the project notes for every event.
+  """
   use RemoteRetroWeb, :channel
 
-  alias RemoteRetroWeb.{
-    Presence,
-    PresenceUtils,
-    VotingHandlers,
-    IdeationHandlers,
-    RetroManagementHandlers,
-    GroupHandlers,
-    UserHandlers
-  }
+  alias RemoteRetro.{Accounts, Retros}
+  alias RemoteRetroWeb.Presence
 
-  alias RemoteRetro.{Retro}
-  import Ecto.Query
-
-  def join("retro:" <> retro_id, _, socket) do
-    socket = assign(socket, :retro_id, retro_id)
-
-    retro = from(r in Retro, where: r.id == ^retro_id)
-      |> preload([:ideas, :votes, :users, :groups])
-      |> Repo.one!
-
-    send(self(), :after_join)
-    {:ok, retro, socket}
+  @impl true
+  def join("retro:" <> retro_id, _params, socket) do
+    with %Retros.Retro{} = retro <- Retros.get_retro(retro_id),
+         %Accounts.User{} = user <- Accounts.get_user(socket.assigns.user_id) do
+      :ok = Retros.participate(retro, user.id)
+      send(self(), :after_join)
+      {:ok, Retros.snapshot(retro.id), assign(socket, retro_id: retro.id, user: user)}
+    else
+      nil -> {:error, %{reason: "not_found"}}
+    end
   end
 
+  @impl true
   def handle_info(:after_join, socket) do
-    PresenceUtils.track_timestamped(socket)
+    user = socket.assigns.user
+    # Participants who joined after others already loaded the room need to reach them.
+    broadcast_from!(socket, "user:joined", %{user: user})
+
+    {:ok, _} =
+      Presence.track(socket, to_string(user.id), %{
+        user_id: user.id,
+        online_at: System.system_time(:second)
+      })
+
     push(socket, "presence_state", Presence.list(socket))
     {:noreply, socket}
-  end
-
-  def handle_in("idea_" <> _ = message_type, idea_params, socket) do
-    IdeationHandlers.handle_in(message_type, idea_params, socket)
-  end
-
-  def handle_in("vote_" <> _ = message_type, vote_params, socket) do
-    VotingHandlers.handle_in(message_type, vote_params, socket)
-  end
-
-  def handle_in("retro_" <> _ = message_type, retro_params, socket) do
-    RetroManagementHandlers.handle_in(message_type, retro_params, socket)
-  end
-
-  def handle_in("group_edited" = message_type, group_params, socket) do
-    GroupHandlers.handle_in(message_type, group_params, socket)
-  end
-
-  def handle_in("user_edited" = message_type, user_params, socket) do
-    UserHandlers.handle_in(message_type, user_params, socket)
-  end
-
-  def handle_in(unhandled_message, payload, socket) do
-    error_payload = %{unhandled_message: %{type: unhandled_message, payload: payload}}
-    Honeybadger.notify(error_payload, metadata: %{retro_id: socket.assigns.retro_id})
-
-    {:reply, {:error, error_payload}, socket}
   end
 end

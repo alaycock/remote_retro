@@ -1,31 +1,37 @@
 defmodule RemoteRetroWeb.AuthController do
   use RemoteRetroWeb, :controller
-  alias RemoteRetro.{OAuth.Google}
-  alias RemoteRetroWeb.UserManagement
 
-  def index(conn, _params) do
-    redirect(conn, external: authorize_url!())
-  end
+  alias RemoteRetro.Accounts
+  alias RemoteRetroWeb.OAuth.Google
+
+  def request(conn, _params), do: redirect(conn, external: Google.authorize_url!())
 
   def callback(conn, %{"code" => code}) do
-    oauth_info = Google.get_user_info!(code)
+    code |> Google.fetch_user_info!() |> sign_in(conn)
+  end
 
-    {:ok, user} = UserManagement.handle_google_oauth(oauth_info)
+  def callback(conn, _params) do
+    conn |> put_flash(:error, "Google sign-in was cancelled.") |> redirect(to: ~p"/")
+  end
 
-    conn =
-      conn
-      |> put_session("current_user_id", user.id)
-      |> put_session("current_user_given_name", user.given_name)
-
-    redirect(conn, to: get_session(conn, "requested_endpoint") || "/retros")
+  @doc "Dev-only: sign in as any email without Google (route only exists with :dev_routes)."
+  def dev_login(conn, %{"email" => email} = params) do
+    name = params["name"] || email |> String.split("@") |> hd() |> String.capitalize()
+    sign_in(%{"email" => email, "name" => name, "given_name" => name}, conn)
   end
 
   def logout(conn, _params) do
-    conn = clear_session(conn)
-    redirect(conn, to: "/")
+    conn |> configure_session(drop: true) |> redirect(to: ~p"/")
   end
 
-  defp authorize_url! do
-    Google.authorize_url!(scope: "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile")
+  defp sign_in(info, conn) do
+    {:ok, user} = Accounts.upsert_from_google(info)
+    return_to = get_session(conn, :return_to) || ~p"/retros"
+
+    conn
+    |> configure_session(renew: true)
+    |> delete_session(:return_to)
+    |> put_session(:user_id, user.id)
+    |> redirect(to: return_to)
   end
 end

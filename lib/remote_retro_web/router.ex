@@ -1,56 +1,45 @@
 defmodule RemoteRetroWeb.Router do
   use RemoteRetroWeb, :router
-  use Honeybadger.Plug
-
-  import Phoenix.LiveDashboard.Router
-
-  alias RemoteRetroWeb.{PageController, AuthController, Plugs}
-
-  @live_dashboard_repos Application.get_env(:remote_retro, :live_dashboard_repos)
-  @auth_controller Application.get_env(:remote_retro, :auth_controller)
-
-  if Application.get_env(:remote_retro, :env) == :dev do
-    forward("/sent_emails", Bamboo.SentEmailViewerPlug)
-  end
-
-  pipeline :authentication_required do
-    plug(Plugs.RedirectUnauthenticated)
-  end
-
-  pipeline :forbid_non_striders do
-    plug(Plugs.SetCurrentUserOnAssignsIfAuthenticated)
-    plug(Plugs.ForbidNonStriders)
-  end
 
   pipeline :browser do
-    plug(:accepts, ["html"])
-    plug(:fetch_session)
-    plug(:fetch_flash)
-    plug(:protect_from_forgery)
-    plug(:put_secure_browser_headers)
-    plug PlugMinifyHtml
+    plug :accepts, ["html"]
+    plug :fetch_session
+    plug :fetch_live_flash
+    plug :put_root_layout, html: {RemoteRetroWeb.Layouts, :root}
+    plug :protect_from_forgery
+    plug :put_secure_browser_headers
+    plug RemoteRetroWeb.Plugs.CurrentUser
   end
 
-  scope "/" do
-    # Use the default browser stack
-    pipe_through(:browser)
-
-    get("/", PageController, :index)
-    get("/faq", PageController, :faq)
-    get("/privacy", PageController, :privacy)
-    get("/auth/google", AuthController, :index)
-    get("/auth/google/callback", @auth_controller, :callback)
-    get("/logout", AuthController, :logout)
+  pipeline :require_user do
+    plug RemoteRetroWeb.Plugs.RequireUser
   end
 
-  scope "/retros", RemoteRetroWeb do
-    pipe_through([:browser, :authentication_required])
+  scope "/", RemoteRetroWeb do
+    pipe_through :browser
 
-    resources("/", RetroController, only: [:index, :create, :show])
+    get "/", PageController, :home
+    get "/faq", PageController, :faq
+    get "/privacy", PageController, :privacy
+
+    get "/auth/google", AuthController, :request
+    get "/auth/google/callback", AuthController, :callback
+    get "/logout", AuthController, :logout
   end
 
-  scope "/admin" do
-    pipe_through [:browser, :authentication_required, :forbid_non_striders]
-    live_dashboard "/dashboard", metrics: RemoteRetroWeb.Telemetry, ecto_repos: @live_dashboard_repos
+  scope "/", RemoteRetroWeb do
+    pipe_through [:browser, :require_user]
+
+    get "/retros", RetroController, :index
+    post "/retros", RetroController, :create
+    get "/retros/:id", RetroController, :show
+  end
+
+  if Application.compile_env(:remote_retro, :dev_routes) do
+    scope "/dev", RemoteRetroWeb do
+      pipe_through :browser
+
+      get "/login", AuthController, :dev_login
+    end
   end
 end

@@ -1,28 +1,21 @@
 # Throwaway containerized dev setup
 
-Everything (Postgres 13, Erlang 22 / Elixir 1.11.4, Node 14.16) runs in OrbStack.
-deps/, _build/, node_modules/ and the DB live in Docker volumes, not on the host.
-
+Everything (Postgres 17, Elixir 1.20 / OTP 28, Node 24) runs in OrbStack.
+deps/, _build/, assets/node_modules/ and the DB live in Docker volumes, not on the host.
 
     cd docker-dev
-    docker compose up -d                 # app at http://localhost:4000, webpack on :8080, pg on :5432
+    docker compose up -d                 # runs `mix setup` then the app at http://localhost:4000
     docker compose logs -f app
     docker compose run --rm app mix test
-    docker compose run --rm app yarn test
+    docker compose run --rm app bash -c "cd assets && npm test && npm run typecheck"
     docker compose exec app bash         # shell inside running app
 
-Google OAuth login: put `export REMOTE_RETRO_GOOGLE_OAUTH_*=...` lines in ../env.sh
-(gitignored); compose loads it into the app container automatically via env_file.
-No need to source it first. Restart with `docker compose up -d app` after editing.
+Sign in: Google OAuth via ../env.sh (gitignored `export REMOTE_RETRO_GOOGLE_OAUTH_*=...` lines,
+loaded automatically). In dev you can skip Google: http://localhost:4000/dev/login?email=you@example.com
 
-If you re-run `yarn install`, restore the semantic CSS afterwards (GNU cp nests
-the dir instead of merging like macOS cp does):
-
-    rm -rf ../priv/static/css/semantic-ui/semantic-ui-offline && git -C .. checkout priv/static/css/semantic-ui/semantic.min.css
-    docker compose run --rm app bash -c 'sed "s|semantic-ui-offline/ |semantic-ui-offline/. |" bin/prepare_semantic_ui_for_consumption_by_phoenix | bash'
+Gemini (optional): `gcloud auth application-default login` on the host (mounted read-only),
+then add `export GCP_PROJECT=...` (and optionally GCP_LOCATION, GEMINI_MODEL) to ../env.sh.
 
 Teardown (removes containers, volumes, image):
 
-    docker compose down -v --rmi local && rm -rf ../docker-dev
-    # plus gitignored build output left in the repo:
-    git -C .. clean -fdX priv/static web/static/js/dll
+    docker compose down -v --rmi local

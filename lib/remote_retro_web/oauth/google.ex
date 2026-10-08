@@ -1,38 +1,30 @@
-defmodule RemoteRetro.OAuth.Google do
-  @moduledoc """
-  Module for Google Oath.
-  """
+defmodule RemoteRetroWeb.OAuth.Google do
+  @moduledoc "Google OAuth 2 sign-in (authorization code flow)."
 
-  @oauth_client Application.get_env(:remote_retro, :oauth_client)
+  @scope "openid email profile"
+  @userinfo_url "https://openidconnect.googleapis.com/v1/userinfo"
 
-  def authorize_url!(params) do
-    @oauth_client.authorize_url!(client(), params)
-  end
+  def authorize_url!, do: OAuth2.Client.authorize_url!(client(), scope: @scope)
 
-  def get_user_info!(code) do
-    user_info_endpoint = "https://www.googleapis.com/oauth2/v3/userinfo"
-
-    code
-    |> retrieve_token!
-    |> @oauth_client.get!(user_info_endpoint)
-    |> Map.get(:body)
-  end
-
-  defp retrieve_token!(code) do
-    client()
-    |> @oauth_client.put_param(:client_secret, client().client_secret)
-    |> @oauth_client.get_token!(code: code)
+  def fetch_user_info!(code) do
+    client = OAuth2.Client.get_token!(client(), code: code)
+    %{body: info} = OAuth2.Client.get!(client, @userinfo_url)
+    info
   end
 
   defp client do
-    @oauth_client.new(
-      client_id: System.get_env("REMOTE_RETRO_GOOGLE_OAUTH_CLIENT_ID"),
-      client_secret: System.get_env("REMOTE_RETRO_GOOGLE_OAUTH_CLIENT_SECRET"),
-      redirect_uri: System.get_env("REMOTE_RETRO_GOOGLE_OAUTH_REDIRECT_URI"),
+    config = Application.fetch_env!(:remote_retro, :google_oauth)
+
+    OAuth2.Client.new(
+      strategy: OAuth2.Strategy.AuthCode,
+      client_id: config[:client_id],
+      client_secret: config[:client_secret],
+      redirect_uri: config[:redirect_uri],
       site: "https://accounts.google.com",
-      authorize_url: "https://accounts.google.com/o/oauth2/auth",
-      token_url: "https://accounts.google.com/o/oauth2/token"
+      authorize_url: "https://accounts.google.com/o/oauth2/v2/auth",
+      token_url: "https://oauth2.googleapis.com/token",
+      token_method: :post
     )
-    |> @oauth_client.put_serializer("application/json", Jason)
+    |> OAuth2.Client.put_serializer("application/json", Jason)
   end
 end

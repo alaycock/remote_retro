@@ -2,14 +2,13 @@ name: remote_retro_dev
 
 services:
   db:
-    image: postgres:13
+    image: postgres:17
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
       - "5432:5432"   # postgres
       - "4000:4000"   # phoenix (app shares this network namespace)
-      - "8080:8080"   # webpack dev server
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -19,7 +18,7 @@ services:
 
   app:
     build: .
-    # share db's network so config's `hostname: "localhost"` works unchanged
+    # share db's network so `hostname: "localhost"` works unchanged
     network_mode: "service:db"
     depends_on:
       db:
@@ -31,16 +30,20 @@ services:
     env_file:
       - path: ../env.sh
         required: false
+    environment:
+      # Vertex AI ADC from host gcloud (`gcloud auth application-default login`)
+      GOOGLE_APPLICATION_CREDENTIALS: /gcloud/application_default_credentials.json
     volumes:
       - ..:/app
       # build artifacts live in volumes, not on the host
       - deps:/app/deps
       - build:/app/_build
-      - node_modules:/app/node_modules
-      # hide host .git so husky etc. can't install hooks into it
+      - node_modules:/app/assets/node_modules
+      - ${HOME}/.config/gcloud:/gcloud:ro
+      # hide host .git so tooling can't install hooks into it
       - type: tmpfs
         target: /app/.git
-    command: ["bash", "-c", "mix phx.server"]
+    command: ["bash", "-c", "mix setup && mix phx.server"]
 
 volumes:
   pgdata:

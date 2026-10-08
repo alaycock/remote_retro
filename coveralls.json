@@ -1,9 +1,0 @@
-{
-  "skip_files": [
-    "lib/tasks",
-    "lib/remote_retro.ex",
-    "lib/remote_retro_web.ex",
-    "test/support",
-    "web/views/error_helpers.ex"
-  ]
-}

@@ -1,57 +1,62 @@
 # This file is responsible for configuring your application
-# and its dependencies with the aid of the Mix.Config module.
+# and its dependencies with the aid of the Config module.
 #
 # This configuration file is loaded before any dependency and
 # is restricted to this project.
-use Mix.Config
 
 # General application configuration
+import Config
+
 config :remote_retro,
   ecto_repos: [RemoteRetro.Repo],
-  env: Mix.env()
+  generators: [timestamp_type: :utc_datetime_usec]
 
-# Configures the endpoint
+# Configure the endpoint
 config :remote_retro, RemoteRetroWeb.Endpoint,
   url: [host: "localhost"],
-  secret_key_base: "mMAbzpoDyu8/YhHYO02sTGhC4RVb2KoqEx1hy0BLtWu8KckeeRz/nFA9TpY+bIaN",
-  render_errors: [view: RemoteRetroWeb.ErrorView, accepts: ~w(html json)],
+  adapter: Bandit.PhoenixAdapter,
+  render_errors: [
+    formats: [html: RemoteRetroWeb.ErrorHTML, json: RemoteRetroWeb.ErrorJSON],
+    layout: false
+  ],
   pubsub_server: RemoteRetro.PubSub,
-  live_view: [signing_salt: "FglCNt_sd7C22gLB"]
+  live_view: [signing_salt: "AlLnjxPQ"]
 
-# Configures Email API
-config :remote_retro, RemoteRetro.Mailer, adapter: Bamboo.SendGridAdapter, api_key: System.get_env("SENDGRID_API_KEY")
-config :bamboo, :json_library, Jason
+# Configure LiveView
+config :phoenix_live_view,
+  # the attribute set on all root tags. Used for Phoenix.LiveView.ColocatedCSS.
+  root_tag_attribute: "phx-r"
 
-config :remote_retro, :auth_controller, RemoteRetroWeb.AuthController
-config :remote_retro, :extra_headers, ""
+# Configure esbuild (the version is required)
+config :esbuild,
+  version: "0.25.4",
+  remote_retro: [
+    args:
+      ~w(js/app.js js/retro/main.tsx --bundle --target=es2022 --jsx=automatic --outdir=../priv/static/assets/js --external:/fonts/* --external:/images/* --alias:@=.),
+    cd: Path.expand("../assets", __DIR__),
+    env: %{"NODE_PATH" => [Path.expand("../deps", __DIR__), Mix.Project.build_path()]}
+  ]
 
-config :oauth2,
-  serializers: %{
-    "application/json" => Jason,
-  }
+# Configure tailwind (the version is required)
+config :tailwind,
+  version: "4.3.3",
+  remote_retro: [
+    args: ~w(
+      --input=assets/css/app.css
+      --output=priv/static/assets/css/app.css
+    ),
+    cd: Path.expand("..", __DIR__),
+    env: %{"NODE_PATH" => [Path.expand("../deps", __DIR__), Mix.Project.build_path()]}
+  ]
 
-config :remote_retro,
-  datadog_client_token: "",
-  datadog_application_id: ""
-
-config :libcluster,
-  topologies: []
-
-# Configures HoneyBadger error reporting API
-config :honeybadger,
-  api_key: "stubDevValue"
-
-# Configures Elixir's Logger
-config :logger, :console,
+# Configure Elixir's Logger
+config :logger, :default_formatter,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id]
 
-config :remote_retro, ecto_repos: [RemoteRetro.Repo]
-config :remote_retro, live_dashboard_repos: []
-
-config :phoenix,
-  json_library: Jason
+# Use Jason for JSON parsing in Phoenix
+config :phoenix, :json_library, Jason
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
-import_config "#{Mix.env()}.exs"
+import_config "#{config_env()}.exs"
