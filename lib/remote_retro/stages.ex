@@ -24,7 +24,10 @@ defmodule RemoteRetro.Stages do
   @doc "True when `to` is exactly one step before or after `from`."
   def adjacent?(from, to), do: to != nil and (next(from) == to or prev(from) == to)
 
-  defp index(stage), do: Enum.find_index(@stages, &(&1 == stage)) || raise(ArgumentError, "unknown stage #{inspect(stage)}")
+  defp index(stage),
+    do:
+      Enum.find_index(@stages, &(&1 == stage)) ||
+        raise(ArgumentError, "unknown stage #{inspect(stage)}")
 
   defp at(i), do: Enum.at(@stages, i)
 end

@@ -1,9 +1,66 @@
-<Layouts.app flash={@flash} current_user={@current_user}>
-  <section class="space-y-6 text-center">
-    <h1 class="text-4xl font-bold">Remote Retro</h1>
-    <p class="text-lg text-base-content/80">
-      Real-time retrospectives for distributed teams: collect ideas, group them on a shared board, vote, and leave with action items.
+<Layouts.app flash={@flash} current_user={@current_user} wide>
+  <section class="mx-auto max-w-2xl text-center">
+    <span class="badge badge-ghost mb-4">Free · Open source</span>
+    <h1 class="text-4xl font-bold tracking-tight sm:text-5xl">
+      Retrospectives your remote team will actually enjoy
+    </h1>
+    <p class="mt-5 text-lg text-base-content/70">
+      Collect ideas in real time, group them on a shared board, vote on what matters, and leave with clear action items.
     </p>
-    <a href={~p"/auth/google"} class="btn btn-primary btn-lg">Sign in with Google</a>
+    <div class="mt-8 flex flex-wrap justify-center gap-3">
+      <a href={~p"/auth/google"} class="btn btn-primary btn-lg">
+        <.icon name="hero-arrow-right-end-on-rectangle" class="size-5" /> Sign in with Google
+      </a>
+      <a href={~p"/faq"} class="btn btn-ghost btn-lg">Learn more</a>
+    </div>
+  </section>
+
+  <section class="mt-20 grid gap-4 sm:grid-cols-3" aria-label="Features">
+    <div
+      :for={
+        {icon, title, body} <- [
+          {"hero-light-bulb", "Share ideas together",
+           "Everyone adds ideas at once. See them appear live, with a gentle typing indicator."},
+          {"hero-squares-2x2", "Group on a shared board",
+           "Drag sticky notes on an infinite canvas. Gemini can pre-group the obvious ones."},
+          {"hero-check-badge", "Vote and commit",
+           "Blind voting surfaces what matters most. Finish with owned action items."}
+        ]
+      }
+      class="card bg-base-200"
+    >
+      <div class="card-body">
+        <span class="grid size-10 place-items-center rounded-lg bg-primary/15 text-primary">
+          <.icon name={icon} class="size-6" />
+        </span>
+        <h2 class="card-title mt-2 text-base">{title}</h2>
+        <p class="text-sm text-base-content/70">{body}</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="mt-20">
+    <h2 class="text-center text-2xl font-semibold">How a retro flows</h2>
+    <ol class="mt-8 grid gap-3 sm:grid-cols-4">
+      <li
+        :for={
+          {step, {title, body}} <-
+            Enum.with_index(
+              [
+                {"Set the stage", "Gather in the lobby and agree to the Prime Directive."},
+                {"Generate ideas", "Happy / Sad / Confused or Start / Stop / Continue."},
+                {"Group, label, vote", "Cluster related ideas, name them, spend three votes."},
+                {"Act", "Discuss the top topics and assign action items."}
+              ],
+              1
+            )
+        }
+        class="rounded-box border border-base-300 p-4"
+      >
+        <span class="text-sm font-semibold text-primary">Step {step}</span>
+        <h3 class="mt-1 font-semibold">{title}</h3>
+        <p class="mt-1 text-sm text-base-content/70">{body}</p>
+      </li>
+    </ol>
   </section>
 </Layouts.app>

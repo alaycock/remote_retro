@@ -6,7 +6,18 @@ defmodule RemoteRetro.Ideas.Idea do
   @max_body 500
 
   @derive {Jason.Encoder,
-           only: [:id, :retro_id, :user_id, :category, :body, :x, :y, :group_id, :assignee_id, :inserted_at]}
+           only: [
+             :id,
+             :retro_id,
+             :user_id,
+             :category,
+             :body,
+             :x,
+             :y,
+             :group_id,
+             :assignee_id,
+             :inserted_at
+           ]}
   schema "ideas" do
     field :category, :string
     field :body, :string
@@ -23,7 +34,7 @@ defmodule RemoteRetro.Ideas.Idea do
 
   def create_changeset(idea, attrs) do
     idea
-    |> cast(attrs, [:category, :body, :assignee_id, :retro_id, :user_id])
+    |> cast(attrs, [:category, :body, :assignee_id])
     |> validate_required([:category, :body, :retro_id, :user_id])
     |> validate_content()
   end

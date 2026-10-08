@@ -27,7 +27,7 @@ export function makeStore(channel?: RetroChannel, preloadedState?: Partial<RootS
   return configureStore({
     reducer: rootReducer,
     preloadedState,
-    middleware: (getDefault) => getDefault({ thunk: { extraArgument: { channel } } }),
+    middleware: (getDefault) => getDefault({ thunk: { extraArgument: { channel } as ThunkExtra } }),
   })
 }
 

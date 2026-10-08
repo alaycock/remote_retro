@@ -14,6 +14,8 @@ defmodule RemoteRetroWeb.Plugs.RequireUser do
     |> halt()
   end
 
-  defp maybe_store_return_to(%{method: "GET"} = conn), do: put_session(conn, :return_to, current_path(conn))
+  defp maybe_store_return_to(%{method: "GET"} = conn),
+    do: put_session(conn, :return_to, current_path(conn))
+
   defp maybe_store_return_to(conn), do: conn
 end

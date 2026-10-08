@@ -1,4 +1,48 @@
 <Layouts.app flash={@flash} current_user={@current_user}>
-  <h1 class="text-2xl font-semibold">Privacy</h1>
-  <p>Coming soon.</p>
+  <article class="space-y-6">
+    <h1 class="text-3xl font-bold tracking-tight">Privacy</h1>
+    <p class="text-base-content/75">
+      Remote Retro collects only what it needs to run your retrospectives.
+    </p>
+
+    <section class="space-y-2">
+      <h2 class="text-lg font-semibold">What we store</h2>
+      <ul class="list-disc space-y-1 pl-5 text-base-content/75">
+        <li>
+          Your Google profile basics: name, email address and profile picture, received when you sign in.
+        </li>
+        <li>
+          The retros you take part in and what you add to them: ideas, groups, labels, votes and action items.
+        </li>
+      </ul>
+    </section>
+
+    <section class="space-y-2">
+      <h2 class="text-lg font-semibold">How it's used</h2>
+      <ul class="list-disc space-y-1 pl-5 text-base-content/75">
+        <li>To sign you in and show who's taking part in a retro.</li>
+        <li>To let other participants of a retro see its content.</li>
+        <li>
+          If AI assistance is enabled, the text of a retro's ideas and labels is sent to Google's Gemini
+          (Vertex AI) to suggest groups and labels. It isn't used for anything else.
+        </li>
+      </ul>
+    </section>
+
+    <section class="space-y-2">
+      <h2 class="text-lg font-semibold">What we don't do</h2>
+      <ul class="list-disc space-y-1 pl-5 text-base-content/75">
+        <li>No advertising, analytics or third-party tracking scripts.</li>
+        <li>No marketing email. We don't send email at all.</li>
+        <li>We never sell or share your data.</li>
+      </ul>
+    </section>
+
+    <section class="space-y-2">
+      <h2 class="text-lg font-semibold">Cookies</h2>
+      <p class="text-base-content/75">
+        A single session cookie keeps you signed in. Your light/dark theme choice is kept in your browser's local storage.
+      </p>
+    </section>
+  </article>
 </Layouts.app>

@@ -1,4 +1,36 @@
 <Layouts.app flash={@flash} current_user={@current_user}>
-  <h1 class="text-2xl font-semibold">FAQ</h1>
-  <p>Coming soon.</p>
+  <h1 class="text-3xl font-bold tracking-tight">Frequently asked questions</h1>
+  <div class="mt-8 space-y-2">
+    <details
+      :for={
+        {question, answer} <- [
+          {"What's a retro?",
+           "Short for retrospective: a regular meeting where a team reflects on its recent work, identifies what to improve, and agrees on action items to make those improvements."},
+          {"How much does it cost?", "Nothing. Remote Retro is free and open source."},
+          {"Who can join?",
+           "Anyone with a Google account who has the retro's link. Share the link from the lobby."},
+          {"How does a retro work here?",
+           "The facilitator guides everyone through each stage: lobby, the Prime Directive, idea generation, grouping, labeling, voting, action items, and finally closing the retro. Facilitators can step back a stage at any time, and re-open a closed retro."},
+          {"What does the AI do?",
+           "When enabled, Google's Gemini groups only clearly related ideas when you enter grouping, and suggests labels for unlabeled groups when you enter labeling. Everything it does can be changed by hand."},
+          {"How many people should take part?",
+           "Ideally no more than about ten. Larger groups make it easy for people to disengage."},
+          {"How long should a retro take?",
+           "Budget about an hour for a sprint retrospective. Much shorter tends to stay on the surface; much longer tends to tire people out."},
+          {"Our team is in one room. Should we use it?",
+           "It works well on a shared screen for ideas, grouping and voting. During discussion and action items, put laptops away and talk face to face."},
+          {"How is my data handled?", "See the privacy page for the details."}
+        ]
+      }
+      class="collapse-arrow collapse border border-base-300 bg-base-100"
+    >
+      <summary class="collapse-title font-medium">{question}</summary>
+      <div class="collapse-content text-base-content/75">
+        <p>{answer}</p>
+      </div>
+    </details>
+  </div>
+  <p class="mt-8 text-sm text-base-content/60">
+    Read the <a href={~p"/privacy"} class="link">privacy policy</a>.
+  </p>
 </Layouts.app>

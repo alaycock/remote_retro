@@ -18,7 +18,9 @@ defmodule RemoteRetroWeb.RetroChannelJoinTest do
 
     assert snapshot.retro.id == retro.id
     assert length(snapshot.ideas) == 1
-    assert Enum.map(snapshot.users, & &1.id) |> Enum.sort() == Enum.sort([facilitator.id, guest.id])
+
+    assert Enum.map(snapshot.users, & &1.id) |> Enum.sort() ==
+             Enum.sort([facilitator.id, guest.id])
   end
 
   test "join fails for unknown retros" do
@@ -27,6 +29,10 @@ defmodule RemoteRetroWeb.RetroChannelJoinTest do
     {:ok, socket} = connect(UserSocket, %{"token" => token})
 
     assert {:error, %{reason: "not_found"}} =
-             subscribe_and_join(socket, RemoteRetroWeb.RetroChannel, "retro:#{Ecto.UUID.generate()}")
+             subscribe_and_join(
+               socket,
+               RemoteRetroWeb.RetroChannel,
+               "retro:#{Ecto.UUID.generate()}"
+             )
   end
 end

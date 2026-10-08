@@ -30,7 +30,9 @@ defmodule RemoteRetro.Retros.Retro do
     retro
     |> cast(attrs, [:stage, :facilitator_id, :ai_status, :ai_grouped_at])
     |> validate_required([:stage])
-    |> validate_change(:stage, fn :stage, s -> if Stages.valid?(s), do: [], else: [stage: "is invalid"] end)
+    |> validate_change(:stage, fn :stage, s ->
+      if Stages.valid?(s), do: [], else: [stage: "is invalid"]
+    end)
     |> validate_inclusion(:ai_status, @ai_statuses)
   end
 end

@@ -27,7 +27,10 @@ config :remote_retro, :google_oauth,
   client_id: System.get_env("REMOTE_RETRO_GOOGLE_OAUTH_CLIENT_ID"),
   client_secret: System.get_env("REMOTE_RETRO_GOOGLE_OAUTH_CLIENT_SECRET"),
   redirect_uri:
-    System.get_env("REMOTE_RETRO_GOOGLE_OAUTH_REDIRECT_URI", "http://localhost:4000/auth/google/callback")
+    System.get_env(
+      "REMOTE_RETRO_GOOGLE_OAUTH_REDIRECT_URI",
+      "http://localhost:4000/auth/google/callback"
+    )
 
 # Vertex AI Gemini (plan 3). AI features are off unless GCP_PROJECT is set.
 config :remote_retro, :ai,

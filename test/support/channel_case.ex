@@ -20,10 +20,21 @@ defmodule RemoteRetroWeb.ChannelCase do
   @doc "Connects as `user` and joins the retro's channel, returning `{socket, snapshot}`."
   def join_retro(user, retro) do
     token = RemoteRetroWeb.UserSocket.sign_token(RemoteRetroWeb.Endpoint, user.id)
-    {:ok, socket} = Phoenix.ChannelTest.__connect__(RemoteRetroWeb.Endpoint, RemoteRetroWeb.UserSocket, %{"token" => token}, [])
+
+    {:ok, socket} =
+      Phoenix.ChannelTest.__connect__(
+        RemoteRetroWeb.Endpoint,
+        RemoteRetroWeb.UserSocket,
+        %{"token" => token},
+        []
+      )
 
     {:ok, snapshot, socket} =
-      Phoenix.ChannelTest.subscribe_and_join(socket, RemoteRetroWeb.RetroChannel, "retro:#{retro.id}")
+      Phoenix.ChannelTest.subscribe_and_join(
+        socket,
+        RemoteRetroWeb.RetroChannel,
+        "retro:#{retro.id}"
+      )
 
     {socket, snapshot}
   end

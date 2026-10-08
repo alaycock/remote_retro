@@ -13,6 +13,8 @@ async function boot(root: HTMLElement) {
   const store = makeStore(channel)
   store.dispatch(currentUserSet(Number(userId)))
   bindChannel(channel, store.dispatch)
+  channel.onConnectionChange((connected) => store.dispatch(connectedChanged(connected)))
+  channel.onRejoin((snapshot) => store.dispatch(snapshotReceived(snapshot)))
 
   const snapshot = await channel.join()
   store.dispatch(snapshotReceived(snapshot))
@@ -31,6 +33,12 @@ const root = document.getElementById("retro-root")
 if (root) {
   boot(root).catch((error) => {
     console.error(error)
-    root.textContent = "Could not join this retro. Try refreshing."
+    root.innerHTML = ""
+    const message = document.createElement("div")
+    message.className = "grid h-full place-items-center p-6 text-center"
+    message.innerHTML =
+      '<div><p class="text-lg font-semibold">Could not join this retro.</p>' +
+      '<p class="mt-1 text-base-content/70">Try refreshing, or go back to <a class="link" href="/retros">your retros</a>.</p></div>'
+    root.appendChild(message)
   })
 }

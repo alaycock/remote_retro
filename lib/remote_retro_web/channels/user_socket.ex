@@ -7,7 +7,8 @@ defmodule RemoteRetroWeb.UserSocket do
   # Tokens are minted on page load; two weeks covers long-lived tabs.
   @max_age 14 * 24 * 60 * 60
 
-  def sign_token(conn_or_endpoint, user_id), do: Phoenix.Token.sign(conn_or_endpoint, @token_salt, user_id)
+  def sign_token(conn_or_endpoint, user_id),
+    do: Phoenix.Token.sign(conn_or_endpoint, @token_salt, user_id)
 
   @impl true
   def connect(%{"token" => token}, socket, _connect_info) do

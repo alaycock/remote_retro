@@ -1,18 +1,39 @@
-# RemoteRetro
+# Remote Retro
 
-To start your Phoenix server:
+Real-time retrospectives for distributed teams: collect ideas, group them on a shared
+pan/zoom board (with optional Gemini assistance), label, vote, and leave with action items.
 
-* Run `mix setup` to install and setup dependencies
-* Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
+Stack: Elixir 1.20 / Phoenix 1.8 / Postgres 17, React 19 + TypeScript + Redux Toolkit,
+Tailwind v4 + daisyUI. Real-time over Phoenix Channels.
 
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+## Development
 
-Ready to run in production? Please [check our deployment guides](https://phoenix.hexdocs.pm/deployment.html).
+Everything runs in containers (see [`docker-dev/README.md`](docker-dev/README.md)):
 
-## Learn more
+    cd docker-dev
+    docker compose up -d        # http://localhost:4000
 
-* Official website: https://www.phoenixframework.org/
-* Guides: https://phoenix.hexdocs.pm/overview.html
-* Docs: https://phoenix.hexdocs.pm
-* Forum: https://elixirforum.com/c/phoenix-forum
-* Source: https://github.com/phoenixframework/phoenix
+Sign in with Google (credentials in a gitignored `env.sh` at the repo root) or, in dev,
+via `http://localhost:4000/dev/login?email=you@example.com`.
+
+## Retro flow
+
+`lobby → prime-directive → idea-generation → grouping → labeling → voting → action-items → closed`
+
+- The facilitator moves one stage forward or back; going back from `closed` re-opens the retro.
+- Grouping: drag stickies so they overlap to form a group; label groups inline. The board is
+  unbounded — pan by dragging empty space, zoom with ctrl/⌘-scroll, pinch, or the controls.
+- With `GCP_PROJECT` set, Gemini (Vertex AI) does a conservative first pass at grouping when the
+  grouping stage starts, and suggests labels for unlabeled groups when labeling starts.
+
+## Configuration
+
+| Env var | Purpose |
+|---|---|
+| `REMOTE_RETRO_GOOGLE_OAUTH_CLIENT_ID` / `_SECRET` / `_REDIRECT_URI` | Google sign-in |
+| `GCP_PROJECT` | Enables Gemini grouping/labelling (unset = off) |
+| `GCP_LOCATION` | Vertex location, default `global` |
+| `GEMINI_MODEL` | Default `gemini-2.5-flash` |
+| `GOOGLE_APPLICATION_CREDENTIALS` | ADC file (service account, user, or impersonated); else metadata server |
+
+The Gemini identity needs `roles/aiplatform.user` on `GCP_PROJECT`.

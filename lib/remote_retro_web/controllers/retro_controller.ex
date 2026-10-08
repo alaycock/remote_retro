@@ -14,8 +14,11 @@ defmodule RemoteRetroWeb.RetroController do
 
   def create(conn, %{"format" => format}) do
     case Retros.create_retro(conn.assigns.current_user, format) do
-      {:ok, retro} -> redirect(conn, to: ~p"/retros/#{retro.id}")
-      {:error, _} -> conn |> put_flash(:error, "Could not create retro.") |> redirect(to: ~p"/retros")
+      {:ok, retro} ->
+        redirect(conn, to: ~p"/retros/#{retro.id}")
+
+      {:error, _} ->
+        conn |> put_flash(:error, "Could not create retro.") |> redirect(to: ~p"/retros")
     end
   end
 

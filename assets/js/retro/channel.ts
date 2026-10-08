@@ -11,6 +11,8 @@ export class PushError extends Error {
 export class RetroChannel {
   private socket: Socket
   private channel: Channel
+  private joined = false
+  private rejoinHandler: ((snapshot: Snapshot) => void) | null = null
 
   constructor(retroId: string, userToken: string) {
     this.socket = new Socket("/socket", { params: { token: userToken } })
@@ -22,10 +24,30 @@ export class RetroChannel {
     return new Promise((resolve, reject) => {
       this.channel
         .join()
-        .receive("ok", (snapshot: Snapshot) => resolve(snapshot))
+        .receive("ok", (snapshot: Snapshot) => {
+          // Phoenix re-fires join hooks on every automatic rejoin after a disconnect.
+          if (this.joined) {
+            this.rejoinHandler?.(snapshot)
+          } else {
+            this.joined = true
+            resolve(snapshot)
+          }
+        })
         .receive("error", ({ reason }: { reason: string }) => reject(new PushError(reason)))
         .receive("timeout", () => reject(new PushError("timeout")))
     })
+  }
+
+  /** Called with a fresh snapshot each time the channel rejoins after a disconnect. */
+  onRejoin(callback: (snapshot: Snapshot) => void): void {
+    this.rejoinHandler = callback
+  }
+
+  /** Socket-level connectivity (open vs. error/closed). */
+  onConnectionChange(callback: (connected: boolean) => void): void {
+    this.socket.onOpen(() => callback(true))
+    this.socket.onError(() => callback(false))
+    this.socket.onClose(() => callback(false))
   }
 
   push<E extends keyof PushEvents, R = unknown>(event: E, payload: PushEvents[E]): Promise<R> {

@@ -27,36 +27,73 @@ defmodule RemoteRetroWeb.Layouts do
   """
   attr :flash, :map, required: true, doc: "the map of flash messages"
   attr :current_user, :map, default: nil
+  attr :wide, :boolean, default: false, doc: "use a wider content column"
   slot :inner_block, required: true
 
   def app(assigns) do
     ~H"""
-    <header class="navbar px-4 sm:px-6 lg:px-8 border-b border-base-300">
-      <div class="flex-1">
-        <a href={~p"/"} class="text-lg font-semibold">Remote Retro</a>
-      </div>
-      <div class="flex-none">
-        <ul class="flex px-1 gap-3 items-center">
-          <li><a href={~p"/faq"} class="btn btn-ghost btn-sm">FAQ</a></li>
-          <li><.theme_toggle /></li>
-          <li :if={@current_user} class="flex items-center gap-2">
-            <img :if={@current_user.picture} src={@current_user.picture} class="size-7 rounded-full" alt="" />
-            <span class="text-sm">{@current_user.given_name}</span>
-            <a href={~p"/logout"} class="btn btn-ghost btn-sm">Sign out</a>
-          </li>
-        </ul>
-      </div>
-    </header>
+    <div class="flex min-h-dvh flex-col bg-base-100">
+      <header class="sticky top-0 z-30 border-b border-base-300 bg-base-100/90 backdrop-blur">
+        <nav class="mx-auto flex max-w-5xl items-center gap-3 px-4 py-2.5 sm:px-6">
+          <a
+            href={if @current_user, do: ~p"/retros", else: ~p"/"}
+            class="flex items-center gap-2 font-semibold"
+          >
+            <span class="grid size-8 place-items-center rounded-lg bg-primary text-primary-content">
+              <.icon name="hero-arrow-path-rounded-square" class="size-5" />
+            </span>
+            Remote Retro
+          </a>
+          <div class="flex-1" />
+          <a :if={@current_user} href={~p"/retros"} class="btn btn-ghost btn-sm hidden sm:inline-flex">
+            Your retros
+          </a>
+          <a href={~p"/faq"} class="btn btn-ghost btn-sm">FAQ</a>
+          <.theme_toggle />
+          <div :if={@current_user} class="dropdown dropdown-end">
+            <div
+              tabindex="0"
+              role="button"
+              class="btn btn-ghost btn-sm btn-circle avatar"
+              aria-label="Account menu"
+            >
+              <img
+                :if={@current_user.picture}
+                src={@current_user.picture}
+                referrerpolicy="no-referrer"
+                class="size-8 rounded-full"
+                alt=""
+              />
+              <.icon :if={!@current_user.picture} name="hero-user-circle" class="size-7" />
+            </div>
+            <ul
+              tabindex="0"
+              class="dropdown-content menu z-40 mt-2 w-52 rounded-box bg-base-100 p-2 shadow-lg ring-1 ring-base-300"
+            >
+              <li class="menu-title truncate">{@current_user.name}</li>
+              <li><a href={~p"/retros"}>Your retros</a></li>
+              <li><a href={~p"/logout"}>Sign out</a></li>
+            </ul>
+          </div>
+        </nav>
+      </header>
 
-    <main class="px-4 py-12 sm:px-6 lg:px-8">
-      <div class="mx-auto max-w-3xl space-y-4">
-        {render_slot(@inner_block)}
-      </div>
-    </main>
+      <main class="flex-1 px-4 py-10 sm:px-6 sm:py-14">
+        <div class={["mx-auto", if(@wide, do: "max-w-5xl", else: "max-w-3xl")]}>
+          {render_slot(@inner_block)}
+        </div>
+      </main>
 
-    <footer class="px-4 pb-8 text-center text-sm text-base-content/60">
-      <a href={~p"/privacy"} class="link link-hover">Privacy</a>
-    </footer>
+      <footer class="border-t border-base-300 px-4 py-6 text-sm text-base-content/60">
+        <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3">
+          <span>Remote Retro · open-source retrospectives</span>
+          <span class="flex gap-4">
+            <a href={~p"/faq"} class="link link-hover">FAQ</a>
+            <a href={~p"/privacy"} class="link link-hover">Privacy</a>
+          </span>
+        </div>
+      </footer>
+    </div>
 
     <.flash_group flash={@flash} />
     """

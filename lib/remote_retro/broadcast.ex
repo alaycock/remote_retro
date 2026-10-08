@@ -5,5 +5,6 @@ defmodule RemoteRetro.Broadcast do
     do: RemoteRetroWeb.Endpoint.broadcast("retro:#{retro_id}", event, payload)
 
   @doc "Sends every client the full room state."
-  def snapshot(retro_id), do: broadcast(retro_id, "snapshot", RemoteRetro.Retros.snapshot(retro_id))
+  def snapshot(retro_id),
+    do: broadcast(retro_id, "snapshot", RemoteRetro.Retros.snapshot(retro_id))
 end
