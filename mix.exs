@@ -71,6 +71,7 @@ defmodule RemoteRetro.MixProject do
       {:bandit, "~> 1.5"},
       {:oauth2, "~> 2.1"},
       {:req, "~> 0.7"},
+      {:swoosh, "~> 1.19"},
       {:goth, "~> 1.4"},
       {:mox, "~> 1.2", only: :test}
     ]

@@ -135,7 +135,13 @@ export const selectPresentUsers = createSelector(
 export const selectTypingUserIds = (state: RootState) => state.presence.typingUserIds
 
 /** True once every online participant has spent all their votes. */
-export const selectAllVotesIn = createSelector(
+/** Online participants who haven't used all their votes yet. */
+export const selectVotersRemaining = createSelector(
   [selectOnlineUserIds, selectVoteCountsByUser],
-  (ids, counts) => ids.length > 0 && ids.every((id) => (counts[id] ?? 0) >= VOTE_LIMIT),
+  (ids, counts) => ids.filter((id) => (counts[id] ?? 0) < VOTE_LIMIT).length,
+)
+
+export const selectAllVotesIn = createSelector(
+  [selectOnlineUserIds, selectVotersRemaining],
+  (ids, remaining) => ids.length > 0 && remaining === 0,
 )

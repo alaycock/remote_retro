@@ -15,6 +15,7 @@ defmodule RemoteRetro.Application do
         {Phoenix.PubSub, name: RemoteRetro.PubSub},
         RemoteRetroWeb.Presence,
         {Task.Supervisor, name: RemoteRetro.AI.TaskSupervisor},
+        {Task.Supervisor, name: RemoteRetro.TaskSupervisor},
         # Start to serve requests, typically the last entry
         RemoteRetroWeb.Endpoint
       ] ++ RemoteRetro.AI.children()
@@ -22,6 +23,7 @@ defmodule RemoteRetro.Application do
     # See https://elixir.hexdocs.pm/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: RemoteRetro.Supervisor]
+    RemoteRetro.Mailer.warn_if_unconfigured()
     Supervisor.start_link(children, opts)
   end
 

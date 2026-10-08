@@ -22,6 +22,15 @@ config :remote_retro, RemoteRetroWeb.Endpoint,
   pubsub_server: RemoteRetro.PubSub,
   live_view: [signing_salt: "AlLnjxPQ"]
 
+# Action-item emails. Dev previews them at /dev/mailbox; test uses
+# Swoosh.Adapters.Test; prod is configured in config/runtime.exs.
+config :remote_retro, RemoteRetro.Mailer, adapter: Swoosh.Adapters.Local
+
+config :remote_retro, :mail_from, ~s("Remote Retro" <no-reply@remoteretro.local>)
+
+# Send action-item emails in the background (tests send inline).
+config :remote_retro, :async_mail, true
+
 # Configure LiveView
 config :phoenix_live_view,
   # the attribute set on all root tags. Used for Phoenix.LiveView.ColocatedCSS.

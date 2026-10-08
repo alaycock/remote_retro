@@ -172,6 +172,8 @@ export const StickyCard = memo(function StickyCard({ idea, color, scale, disable
         "absolute left-0 top-0 flex flex-col rounded-md border bg-base-100 p-2 shadow-sm outline-none",
         "focus-visible:ring-2 focus-visible:ring-primary",
         dragging ? "z-20 cursor-grabbing shadow-xl" : blocked ? "cursor-not-allowed" : "cursor-grab",
+        // Lift the card under the pointer (or keyboard focus) out of its stack so it can be read.
+        dragging ? "" : "hover:z-10 hover:shadow-md focus-visible:z-10",
         remote && !dragging ? "transition-transform duration-75 ease-linear" : "",
       ].join(" ")}
       style={{

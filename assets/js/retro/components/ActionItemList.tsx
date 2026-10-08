@@ -36,7 +36,7 @@ export function ActionItemList({ editable }: { editable: boolean }) {
             onDelete={() => dispatch(deleteIdea(item.id))}
             meta={
               canEdit ? (
-                <label className="flex items-center gap-1.5">
+                <label className="-ml-1 flex items-center gap-1.5 rounded-field py-0.5 pl-1 focus-within:ring-2 focus-within:ring-primary/60">
                   {assignee ? (
                     <Avatar user={assignee} size="xs" />
                   ) : (
@@ -44,7 +44,7 @@ export function ActionItemList({ editable }: { editable: boolean }) {
                   )}
                   <span className="sr-only">Owner</span>
                   <select
-                    className="select select-ghost select-xs max-w-40"
+                    className="select select-ghost select-xs max-w-40 border-0 focus:outline-none focus-visible:outline-none"
                     value={item.assignee_id ?? ""}
                     onChange={(e) => dispatch(updateIdea({ id: item.id, assignee_id: Number(e.target.value) }))}
                   >

@@ -2,14 +2,18 @@ defmodule RemoteRetro.AI.Apply do
   @moduledoc """
   Applies validated AI suggestions to a retro.
 
-  Grouping: each suggested group's ideas are stacked at an anchor (offset 24,24
-  per card, so neighbouring cards overlap far more than the 8px buffer and
-  `Groups.sync/1` clusters them). Anchors are laid out in a grid in free space
-  to the right of every positioned idea, with an 80px gap so stacks never touch
-  each other or existing cards. Other ideas stay where they are.
+  Each suggested group's ideas are cascaded mostly vertically from an anchor
+  (offset 12,84 per card). Neighbouring 200x120 cards then overlap by 188x36,
+  well over the 8px buffer on both axes, so `Groups.sync/1` clusters them,
+  while each card's author line and first couple of text lines stay visible.
+  Anchors are laid out in a grid in free space to the right of every
+  positioned idea; cells are sized for the largest stack plus an 80px gap so
+  stacks never touch each other or existing cards. Other ideas stay where they
+  are.
 
-  Labels are only ever written to groups that are still unlabelled at apply
-  time (`label_source: "ai"`), so user edits always win. Does not broadcast.
+  A label the model suggested is only written to a group that is still
+  unlabelled at apply time (`label_source: "ai"`), so user edits always win.
+  Does not broadcast.
   """
   import Ecto.Query
   alias RemoteRetro.{Formats, Groups, Repo}
@@ -18,7 +22,8 @@ defmodule RemoteRetro.AI.Apply do
 
   @card_w 200
   @card_h 120
-  @offset 24
+  @offset_x 12
+  @offset_y 84
   @gap 80
 
   @doc "Non-action ideas that are not already in a multi-idea group."
@@ -31,20 +36,6 @@ defmodule RemoteRetro.AI.Apply do
         order_by: i.id
     )
     |> Enum.reject(&(&1.group_id in grouped))
-  end
-
-  @doc "Unlabelled groups with 2+ ideas, as `%{id, ideas: [body]}`."
-  def labeling_candidates(retro_id) do
-    ideas_query = from i in Idea, order_by: i.id
-
-    Repo.all(
-      from g in Group,
-        where: g.retro_id == ^retro_id and is_nil(g.label),
-        order_by: g.id,
-        preload: [ideas: ^ideas_query]
-    )
-    |> Enum.filter(&(length(&1.ideas) >= 2))
-    |> Enum.map(&%{id: &1.id, ideas: Enum.map(&1.ideas, fn idea -> idea.body end)})
   end
 
   @doc """
@@ -97,13 +88,6 @@ defmodule RemoteRetro.AI.Apply do
     end
   end
 
-  @doc "Sets labels (`%{group_id => label}`) on groups still unlabelled. Returns the count written."
-  def apply_labels(retro_id, labels) do
-    Enum.reduce(labels, 0, fn {group_id, label}, count ->
-      count + set_label_if_unlabeled(retro_id, group_id, label)
-    end)
-  end
-
   @doc """
   Pure layout: `[{idea_id, x, y}]` for each suggestion, stacked at grid anchors
   right of `bbox` (`{min_x, min_y, max_x, max_y}` of card origins, or `nil`).
@@ -116,15 +100,15 @@ defmodule RemoteRetro.AI.Apply do
       end
 
     largest = suggestions |> Enum.map(&length(&1.idea_ids)) |> Enum.max(fn -> 1 end)
-    cell_w = @card_w + @offset * (largest - 1) + @gap
-    cell_h = @card_h + @offset * (largest - 1) + @gap
+    cell_w = @card_w + @offset_x * (largest - 1) + @gap
+    cell_h = @card_h + @offset_y * (largest - 1) + @gap
     cols = suggestions |> length() |> :math.sqrt() |> ceil() |> max(1)
 
     for {%{idea_ids: ids}, index} <- Enum.with_index(suggestions),
         anchor_x = origin_x + rem(index, cols) * cell_w,
         anchor_y = origin_y + div(index, cols) * cell_h,
         {id, k} <- Enum.with_index(ids) do
-      {id, (anchor_x + k * @offset) * 1.0, (anchor_y + k * @offset) * 1.0}
+      {id, (anchor_x + k * @offset_x) * 1.0, (anchor_y + k * @offset_y) * 1.0}
     end
   end
 

@@ -56,6 +56,9 @@ config :remote_retro, RemoteRetroWeb.Endpoint,
 # Enable dev routes for dashboard and mailbox
 config :remote_retro, dev_routes: true
 
+# The local mailbox needs no HTTP client.
+config :swoosh, :api_client, false
+
 # Do not include metadata nor timestamps in development logs
 config :logger, :default_formatter, format: "[$level] $message\n"
 

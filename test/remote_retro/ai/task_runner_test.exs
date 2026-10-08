@@ -22,15 +22,6 @@ defmodule RemoteRetro.AI.TaskRunnerTest do
         do: idea_fixture(retro, user, %{body: body, x: i * 240.0, y: 0.0})
   end
 
-  defp labeled_pair(retro, user) do
-    group = group_fixture(retro)
-
-    for body <- ["Flaky tests", "Tests time out"],
-        do: idea_fixture(retro, user, %{body: body, group_id: group.id})
-
-    group
-  end
-
   describe "grouping" do
     test "skips without calling the model when fewer than 2 candidate ideas", %{
       user: user,
@@ -78,7 +69,7 @@ defmodule RemoteRetro.AI.TaskRunnerTest do
       new_a = Repo.get!(Idea, a.id)
       new_c = Repo.get!(Idea, c.id)
       assert new_a.x > 2 * 240 + 200
-      assert {new_c.x - new_a.x, new_c.y - new_a.y} == {24.0, 24.0}
+      assert {new_c.x - new_a.x, new_c.y - new_a.y} == {12.0, 84.0}
       assert Repo.get!(Idea, b.id).x == 240.0
     end
 
@@ -144,46 +135,6 @@ defmodule RemoteRetro.AI.TaskRunnerTest do
     end
   end
 
-  describe "labeling" do
-    test "skips when there are no unlabeled multi-idea groups", %{user: user, retro: retro} do
-      group = group_fixture(retro, %{label: "Taken", label_source: "user"})
-      for b <- ~w(a b), do: idea_fixture(retro, user, %{body: b, group_id: group.id})
-      assert TaskRunner.run(:labeling, retro.id, force: true) == :skipped
-    end
-
-    test "labels unlabeled groups but never overwrites a label set mid-flight", %{
-      user: user,
-      retro: retro
-    } do
-      open = labeled_pair(retro, user)
-      raced = labeled_pair(retro, user)
-      retro_id = retro.id
-
-      expect(ClientMock, :generate_json, fn _system, user_msg, _schema ->
-        assert user_msg =~ "Flaky tests"
-        assert Repo.get!(Retro, retro_id).ai_status == "labeling"
-        # a participant labels this group while the model is thinking
-        raced |> Ecto.Changeset.change(label: "Mine", label_source: "user") |> Repo.update!()
-
-        {:ok,
-         %{
-           "labels" => [
-             %{"group_id" => open.id, "label" => "Test flakiness"},
-             %{"group_id" => raced.id, "label" => "AI"}
-           ]
-         }}
-      end)
-
-      assert TaskRunner.run(:labeling, retro.id, force: true) == :ok
-
-      assert %{label: "Test flakiness", label_source: "ai"} = Repo.get!(Group, open.id)
-      assert %{label: "Mine", label_source: "user"} = Repo.get!(Group, raced.id)
-      assert %{ai_status: nil, ai_grouped_at: nil} = Repo.get!(Retro, retro.id)
-      assert_received %{event: "retro:updated", payload: %{retro: %Retro{ai_status: "labeling"}}}
-      assert_received %{event: "snapshot"}
-    end
-  end
-
   describe "start/2" do
     setup do
       previous = Application.get_env(:remote_retro, :ai)
@@ -195,7 +146,6 @@ defmodule RemoteRetro.AI.TaskRunnerTest do
       Application.put_env(:remote_retro, :ai, Keyword.put(previous || [], :enabled, false))
       ideas(retro, user, ["one", "two"])
       assert TaskRunner.start(:grouping, retro.id) == :skipped
-      assert TaskRunner.start(:labeling, retro.id) == :skipped
     end
 
     test "runs asynchronously and returns immediately", %{
@@ -204,16 +154,16 @@ defmodule RemoteRetro.AI.TaskRunnerTest do
       previous: previous
     } do
       Application.put_env(:remote_retro, :ai, Keyword.put(previous || [], :enabled, true))
-      labeled_pair(retro, user)
+      ideas(retro, user, ["one", "two"])
       test_pid = self()
 
       expect(ClientMock, :generate_json, fn _, _, _ ->
         send(test_pid, :model_called)
-        {:ok, %{"labels" => []}}
+        {:ok, %{"groups" => []}}
       end)
 
-      assert TaskRunner.start(:labeling, retro.id) == :ok
-      assert Repo.get!(Retro, retro.id).ai_status == "labeling"
+      assert TaskRunner.start(:grouping, retro.id) == :ok
+      assert Repo.get!(Retro, retro.id).ai_status == "grouping"
       assert_receive :model_called, 1_000
       assert_receive %{event: "snapshot", payload: %{retro: %Retro{ai_status: nil}}}, 1_000
     end

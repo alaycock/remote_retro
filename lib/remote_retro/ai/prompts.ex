@@ -1,11 +1,10 @@
 defmodule RemoteRetro.AI.Prompts do
   @moduledoc """
-  Prompt builders and response validation for AI grouping and labelling.
+  Prompt builder and response validation for AI grouping.
 
   Idea text is untrusted: it is only ever sent JSON-encoded inside the user
   message, and the system instruction tells the model to treat it as data.
-  Model output is never trusted either — see `validate_grouping/2` and
-  `validate_labeling/2`.
+  Model output is never trusted either — see `validate_grouping/2`.
   """
 
   @max_label_words 4
@@ -41,18 +40,6 @@ defmodule RemoteRetro.AI.Prompts do
   Respond only with JSON matching the response schema.
   """
 
-  @labeling_system """
-  You help a team running a retrospective. Participants have grouped related \
-  sticky-note ideas together. For each group, propose a short title of at most \
-  #{@max_label_words} words that captures what its ideas have in common. Use plain \
-  words; no quotes, emoji or trailing punctuation. Return one entry per group_id \
-  from the input and use only those ids.
-
-  #{@untrusted}
-
-  Respond only with JSON matching the response schema.
-  """
-
   @grouping_schema %{
     "type" => "OBJECT",
     "properties" => %{
@@ -71,38 +58,12 @@ defmodule RemoteRetro.AI.Prompts do
     "required" => ["groups"]
   }
 
-  @labeling_schema %{
-    "type" => "OBJECT",
-    "properties" => %{
-      "labels" => %{
-        "type" => "ARRAY",
-        "items" => %{
-          "type" => "OBJECT",
-          "properties" => %{
-            "group_id" => %{"type" => "INTEGER"},
-            "label" => %{"type" => "STRING"}
-          },
-          "required" => ["group_id", "label"]
-        }
-      }
-    },
-    "required" => ["labels"]
-  }
-
   @doc "Builds `{system, user, schema}` for grouping. `ideas` need `:id`, `:category`, `:body`."
   def grouping(ideas) do
     payload = %{ideas: Enum.map(ideas, &%{id: &1.id, category: &1.category, text: &1.body})}
 
     {@grouping_system, "Retrospective ideas (JSON data):\n" <> Jason.encode!(payload),
      @grouping_schema}
-  end
-
-  @doc "Builds `{system, user, schema}` for labelling. `groups` are `%{id, ideas: [body]}`."
-  def labeling(groups) do
-    payload = %{groups: Enum.map(groups, &%{group_id: &1.id, ideas: &1.ideas})}
-
-    {@labeling_system, "Groups of retrospective ideas (JSON data):\n" <> Jason.encode!(payload),
-     @labeling_schema}
   end
 
   @doc """
@@ -141,30 +102,6 @@ defmodule RemoteRetro.AI.Prompts do
         ids = Enum.reject(ids, &MapSet.member?(contested, &1)),
         length(ids) >= 2 do
       %{idea_ids: ids, label: clean_label(label)}
-    end
-  end
-
-  @doc "Returns `%{group_id => label}` for known group ids with a usable label (first wins)."
-  def validate_labeling(response, group_ids) do
-    known = MapSet.new(group_ids)
-
-    case response do
-      %{"labels" => labels} when is_list(labels) ->
-        Enum.reduce(labels, %{}, fn
-          %{"group_id" => id, "label" => label}, acc when is_integer(id) ->
-            with true <- MapSet.member?(known, id) and not Map.has_key?(acc, id),
-                 label when is_binary(label) <- clean_label(label) do
-              Map.put(acc, id, label)
-            else
-              _ -> acc
-            end
-
-          _, acc ->
-            acc
-        end)
-
-      _ ->
-        %{}
     end
   end
 

@@ -4,7 +4,6 @@ import type { AiStatus } from "../types"
 
 const COPY: Record<NonNullable<AiStatus>, string> = {
   grouping: "Gemini is grouping clearly related ideas…",
-  labeling: "Gemini is suggesting labels…",
 }
 
 /**

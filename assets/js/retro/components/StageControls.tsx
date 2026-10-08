@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { nextStage, prevStage, STAGE_CONFIGS } from "../stages"
 import { useAppDispatch, useAppSelector } from "../store/hooks"
-import { selectAiStatus, selectAllVotesIn, selectIsFacilitator, selectStage } from "../store/selectors"
+import { selectAiStatus, selectIsFacilitator, selectStage } from "../store/selectors"
 import { changeStage } from "../store/thunks"
 import type { Stage } from "../types"
 import { ConfirmDialog } from "./ConfirmDialog"
@@ -15,7 +15,6 @@ export function StageControls() {
   const stage = useAppSelector(selectStage)
   const isFacilitator = useAppSelector(selectIsFacilitator)
   const aiStatus = useAppSelector(selectAiStatus)
-  const allVotesIn = useAppSelector(selectAllVotesIn)
   // The stage the warning was raised from; it is ignored once the stage changes so a
   // stale dialog can never render copy for a different stage.
   const [warningFrom, setWarningFrom] = useState<Stage | null>(null)
@@ -55,12 +54,6 @@ export function StageControls() {
           <span className={`${isReopen ? "hero-arrow-uturn-left" : "hero-arrow-left"} size-4`} aria-hidden="true" />
           {config.prevCopy}
         </button>
-      )}
-      {stage === "voting" && allVotesIn && (
-        <span className="badge badge-success badge-soft gap-1 font-medium" role="status">
-          <span className="hero-check-circle-micro size-4" aria-hidden="true" />
-          All votes in
-        </span>
       )}
       {next && config.nextCopy && (
         <button type="button" className="btn btn-sm btn-primary" disabled={disabled} onClick={() => go(next)}>

@@ -65,11 +65,12 @@ defmodule RemoteRetro.RetrosStageTest do
     assert {:ok, %{stage: "grouping"}} = Retros.change_stage(retro, "grouping", f.id)
   end
 
-  test "moving on from grouping to voting syncs and starts AI labeling", %{facilitator: f} do
+  test "moving on from grouping to voting syncs groups without starting the AI", %{
+    facilitator: f
+  } do
     retro = retro_fixture(f, %{stage: "grouping"})
     idea = idea_fixture(retro, f, %{x: 0.0, y: 0.0})
-    id = retro.id
-    expect(RunnerMock, :start, fn :labeling, ^id -> :skipped end)
+    # No expectation: a call would fail verify_on_exit!.
 
     assert {:ok, _} = Retros.change_stage(retro, "voting", f.id)
     assert Repo.reload!(idea).group_id
@@ -92,10 +93,11 @@ defmodule RemoteRetro.RetrosStageTest do
     assert Repo.reload(vote)
   end
 
-  test "closing and re-opening have no side effects", %{facilitator: f} do
+  test "closing without action items and re-opening have no side effects", %{facilitator: f} do
     retro = retro_fixture(f, %{stage: "action-items"})
     assert {:ok, closed} = Retros.change_stage(retro, "closed", f.id)
     assert {:ok, %{stage: "action-items"}} = Retros.change_stage(closed, "action-items", f.id)
+    Swoosh.TestAssertions.assert_no_email_sent()
   end
 
   test "change_facilitator hands over to participants only", %{facilitator: f, guest: g} do

@@ -3,7 +3,7 @@ defmodule RemoteRetro.Retros.Retro do
   import Ecto.Changeset
   alias RemoteRetro.{Formats, Stages}
 
-  @ai_statuses ~w(grouping labeling)
+  @ai_statuses ~w(grouping)
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @derive {Jason.Encoder, only: [:id, :format, :stage, :facilitator_id, :ai_status, :inserted_at]}
@@ -12,6 +12,7 @@ defmodule RemoteRetro.Retros.Retro do
     field :stage, :string, default: "lobby"
     field :ai_status, :string
     field :ai_grouped_at, :utc_datetime_usec
+    field :action_items_emailed_digest, :string
     belongs_to :facilitator, RemoteRetro.Accounts.User
     has_many :participations, RemoteRetro.Retros.Participation
     has_many :ideas, RemoteRetro.Ideas.Idea

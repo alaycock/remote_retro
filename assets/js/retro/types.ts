@@ -13,7 +13,7 @@ export type Stage = (typeof STAGES)[number]
 
 export type Format = "happy_sad_confused" | "start_stop_continue"
 export type Category = "happy" | "sad" | "confused" | "start" | "stop" | "continue" | "action-item"
-export type AiStatus = "grouping" | "labeling" | null
+export type AiStatus = "grouping" | null
 
 export interface Retro {
   id: string

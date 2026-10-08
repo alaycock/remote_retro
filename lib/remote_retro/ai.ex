@@ -1,5 +1,5 @@
 defmodule RemoteRetro.AI do
-  @moduledoc "Gemini-assisted grouping and labelling. Disabled unless `GCP_PROJECT` is set."
+  @moduledoc "Gemini-assisted grouping (with a label when an obvious title exists). Disabled unless `GCP_PROJECT` is set."
 
   def enabled?, do: config()[:enabled] == true
 

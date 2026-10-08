@@ -69,21 +69,8 @@ export const STAGE_CONFIGS: Record<Stage, StageConfig> = {
     title: "The Prime Directive",
     short: "Prime directive",
     component: PrimeDirective,
-    help: () => (
-      <>
-        <p className="mb-3">
-          Norm Kerth's Prime Directive sets the stage for every retrospective, so the time spent is as constructive as
-          possible.
-        </p>
-        <Guidance
-          items={[
-            "Ask a volunteer to read the Prime Directive aloud.",
-            "Ask each member of the team whether they can agree to it.",
-            "Once everyone agrees, move on to idea generation.",
-          ]}
-        />
-      </>
-    ),
+    // Guidance is shown on the page itself.
+    help: null,
     nextCopy: "Idea generation",
     prevCopy: "Back",
   },
@@ -107,7 +94,6 @@ export const STAGE_CONFIGS: Record<Stage, StageConfig> = {
           "On the board, drag related ideas so they overlap; overlapping cards form a group. Leave unrelated ideas apart.",
           "Give each group a short label, right on the board or in the list view.",
           "Gemini may have already grouped clearly related ideas. Rearrange or relabel anything that doesn't fit.",
-          "Any groups still unlabeled get a suggested label from Gemini when you move on to voting.",
         ]}
       />
     ),

@@ -24,7 +24,8 @@ defmodule RemoteRetro.AI.ApplyTest do
       assert overlaps?(by_id[1], by_id[2])
       assert overlaps?(by_id[2], by_id[3])
       assert overlaps?(by_id[4], by_id[5])
-      assert by_id[2] == {elem(by_id[1], 0) + 24, elem(by_id[1], 1) + 24}
+      assert by_id[2] == {elem(by_id[1], 0) + 12, elem(by_id[1], 1) + 84}
+      assert by_id[3] == {elem(by_id[1], 0) + 24, elem(by_id[1], 1) + 168}
     end
 
     test "places stacks right of existing content with an 80px gap, never touching each other" do
@@ -44,7 +45,7 @@ defmodule RemoteRetro.AI.ApplyTest do
     end
 
     test "starts at the origin on an empty board" do
-      assert [{1, +0.0, +0.0}, {2, 24.0, 24.0}] = Apply.layout(nil, [%{idea_ids: [1, 2]}])
+      assert [{1, +0.0, +0.0}, {2, 12.0, 84.0}] = Apply.layout(nil, [%{idea_ids: [1, 2]}])
     end
   end
 
@@ -71,39 +72,6 @@ defmodule RemoteRetro.AI.ApplyTest do
 
       assert retro.id |> Apply.grouping_candidates() |> Enum.map(& &1.id) == [a.id, solo.id]
     end
-
-    test "labeling candidates are unlabeled groups with 2+ ideas", %{user: user, retro: retro} do
-      unlabeled = group_fixture(retro)
-      labeled = group_fixture(retro, %{label: "Mine", label_source: "user"})
-      single = group_fixture(retro)
-
-      for g <- [unlabeled, labeled, unlabeled, labeled, single],
-          do: idea_fixture(retro, user, %{body: "x#{g.id}", group_id: g.id})
-
-      assert Apply.labeling_candidates(retro.id) == [
-               %{id: unlabeled.id, ideas: ["x#{unlabeled.id}", "x#{unlabeled.id}"]}
-             ]
-    end
-  end
-
-  describe "apply_labels/2" do
-    test "only fills groups that are still unlabeled" do
-      user = user_fixture()
-      retro = retro_fixture(user, %{stage: "voting"})
-      open = group_fixture(retro)
-      taken = group_fixture(retro, %{label: "User label", label_source: "user"})
-      other_retro_group = group_fixture(retro_fixture(user))
-
-      assert Apply.apply_labels(retro.id, %{
-               open.id => "Deploys",
-               taken.id => "AI",
-               other_retro_group.id => "AI"
-             }) == 1
-
-      assert %{label: "Deploys", label_source: "ai"} = Repo.get!(Group, open.id)
-      assert %{label: "User label", label_source: "user"} = Repo.get!(Group, taken.id)
-      assert %{label: nil} = Repo.get!(Group, other_retro_group.id)
-    end
   end
 
   describe "apply_grouping/2" do
@@ -129,7 +97,7 @@ defmodule RemoteRetro.AI.ApplyTest do
       new_a = Repo.get!(Idea, a.id)
       new_c = Repo.get!(Idea, c.id)
       assert new_a.x >= 3 * 240 + 200 + 80
-      assert {new_c.x - new_a.x, new_c.y - new_a.y} == {24.0, 24.0}
+      assert {new_c.x - new_a.x, new_c.y - new_a.y} == {12.0, 84.0}
       assert %{x: 240.0, y: +0.0} = Repo.get!(Idea, b.id)
       assert %{x: 720.0, y: +0.0} = Repo.get!(Idea, d.id)
     end

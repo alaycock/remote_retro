@@ -48,7 +48,8 @@ export function snapshot(overrides: Partial<Snapshot> = {}): Snapshot {
 
 export function mockChannel(impl?: (event: string, payload: unknown) => Promise<unknown>) {
   const push = vi.fn(impl ?? (() => Promise.resolve({})))
-  return { channel: { push } as unknown as RetroChannel, push }
+  // `on` is a no-op so components that subscribe to broadcasts (e.g. the board) can mount.
+  return { channel: { push, on: vi.fn() } as unknown as RetroChannel, push }
 }
 
 export function setup(

@@ -36,3 +36,7 @@ config :phoenix,
 
 config :remote_retro, :ai_runner, RemoteRetro.AI.RunnerMock
 config :remote_retro, :ai_client, RemoteRetro.AI.ClientMock
+
+config :remote_retro, RemoteRetro.Mailer, adapter: Swoosh.Adapters.Test
+config :remote_retro, :async_mail, false
+config :swoosh, :api_client, false

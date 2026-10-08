@@ -41,5 +41,12 @@ defmodule RemoteRetroWeb.Router do
 
       get "/login", AuthController, :dev_login
     end
+
+    # No module alias here: the plug lives outside RemoteRetroWeb.
+    scope "/dev" do
+      pipe_through :browser
+
+      forward "/mailbox", Plug.Swoosh.MailboxPreview
+    end
   end
 end

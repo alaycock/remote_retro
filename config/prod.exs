@@ -20,6 +20,9 @@ config :remote_retro, RemoteRetroWeb.Endpoint,
     ]
   ]
 
+# Swoosh API adapters (SendGrid) talk HTTP through Req; no local mailbox.
+config :swoosh, api_client: Swoosh.ApiClient.Req, local: false
+
 # Do not print debug messages in production
 config :logger, level: :info
 

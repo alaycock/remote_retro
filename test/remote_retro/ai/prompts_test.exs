@@ -41,22 +41,6 @@ defmodule RemoteRetro.AI.PromptsTest do
     end
   end
 
-  describe "labeling/1" do
-    test "sends groups with their idea bodies" do
-      {system, user, schema} =
-        Prompts.labeling([%{id: 7, ideas: ["Flaky tests", "Tests time out"]}])
-
-      assert system =~ "untrusted data"
-      [_, json] = String.split(user, "\n", parts: 2)
-
-      assert Jason.decode!(json) == %{
-               "groups" => [%{"group_id" => 7, "ideas" => ["Flaky tests", "Tests time out"]}]
-             }
-
-      assert schema["properties"]["labels"]["items"]["required"] == ["group_id", "label"]
-    end
-  end
-
   describe "validate_grouping/2" do
     test "keeps well-formed groups and cleans labels" do
       response = %{
@@ -107,28 +91,6 @@ defmodule RemoteRetro.AI.PromptsTest do
       assert Prompts.validate_grouping(%{}, [1]) == []
       assert Prompts.validate_grouping(%{"groups" => "nope"}, [1]) == []
       assert Prompts.validate_grouping(%{"groups" => [%{"label" => "x"}, "junk"]}, [1]) == []
-    end
-  end
-
-  describe "validate_labeling/2" do
-    test "keeps the first usable label for each known group" do
-      response = %{
-        "labels" => [
-          %{"group_id" => 1, "label" => "Release process"},
-          %{"group_id" => 1, "label" => "Second"},
-          %{"group_id" => 2, "label" => "this label is far too long"},
-          %{"group_id" => 3, "label" => "Unknown"},
-          %{"group_id" => "4", "label" => "Bad id"},
-          %{"group_id" => 5, "label" => nil}
-        ]
-      }
-
-      assert Prompts.validate_labeling(response, [1, 2, 4, 5]) == %{1 => "Release process"}
-    end
-
-    test "tolerates malformed responses" do
-      assert Prompts.validate_labeling(%{"labels" => nil}, [1]) == %{}
-      assert Prompts.validate_labeling(%{}, [1]) == %{}
     end
   end
 

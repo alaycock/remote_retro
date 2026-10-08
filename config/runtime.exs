@@ -39,6 +39,10 @@ config :remote_retro, :ai,
   location: System.get_env("GCP_LOCATION", "global"),
   model: System.get_env("GEMINI_MODEL", "gemini-2.5-flash")
 
+if mail_from = System.get_env("MAIL_FROM") do
+  config :remote_retro, :mail_from, mail_from
+end
+
 if config_env() == :dev do
   # Reload browser tabs when matching files change.
   config :remote_retro, RemoteRetroWeb.Endpoint,
@@ -87,6 +91,19 @@ if config_env() == :prod do
   host = System.get_env("PHX_HOST") || "example.com"
 
   config :remote_retro, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
+
+  # Action-item emails go through SendGrid when a key is set. Without one they
+  # are only logged (at debug level), and a warning is logged at boot, so a
+  # missing key never stops the app.
+  case System.get_env("SENDGRID_API_KEY") do
+    key when key in [nil, ""] ->
+      config :remote_retro, RemoteRetro.Mailer, adapter: Swoosh.Adapters.Logger, level: :debug
+
+    key ->
+      config :remote_retro, RemoteRetro.Mailer, adapter: Swoosh.Adapters.Sendgrid, api_key: key
+  end
+
+  config :remote_retro, :warn_default_mail_from, System.get_env("MAIL_FROM") in [nil, ""]
 
   config :remote_retro, RemoteRetroWeb.Endpoint,
     url: [host: host, port: 443, scheme: "https"],

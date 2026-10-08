@@ -1,7 +1,8 @@
 defmodule RemoteRetro.Retros do
   @moduledoc "Retros, participation and the full-state snapshot sent to clients."
+  require Logger
   import Ecto.Query
-  alias RemoteRetro.{AI, Broadcast, Groups, Layout, Repo, Stages}
+  alias RemoteRetro.{AI, Broadcast, Emails, Formats, Groups, Layout, Mailer, Repo, Stages}
   alias RemoteRetro.Retros.{Retro, Participation}
   alias RemoteRetro.Accounts.User
   alias RemoteRetro.Ideas.Idea
@@ -82,11 +83,14 @@ defmodule RemoteRetro.Retros do
 
   Entering `grouping` lays out unpositioned ideas and syncs groups; moving
   forward from `grouping` to `voting` syncs groups once more. After commit,
-  every client gets a fresh `snapshot` and the AI runner is started: a
-  grouping pass on entering `grouping` (only until it has succeeded once) and
-  a labeling pass for still-unlabeled groups on the way into `voting`. The
-  runner decides whether AI is enabled.
-  Moving back from `closed` re-opens the retro with no side effects.
+  every client gets a fresh `snapshot` and, on entering `grouping`, the AI
+  runner is started for a grouping pass (only until it has succeeded once; the
+  runner decides whether AI is enabled). Groups left unlabeled stay unlabeled:
+  nothing is auto-labeled on the way into `voting`.
+
+  Moving forward into `closed` emails the action items to every participant
+  (see `deliver_action_items/1`), in the background unless `:async_mail` is
+  false. Moving back from `closed` re-opens the retro with no side effects.
   """
   def change_stage(%Retro{id: retro_id}, to_stage, actor_id) do
     result =
@@ -109,6 +113,7 @@ defmodule RemoteRetro.Retros do
       # fast AI pass can't leave clients stale.
       start_ai(from, retro)
       Broadcast.snapshot(retro.id)
+      after_commit(from, retro)
       {:ok, Repo.reload!(retro)}
     end
   end
@@ -138,8 +143,127 @@ defmodule RemoteRetro.Retros do
   defp start_ai(_from, %Retro{stage: "grouping", ai_grouped_at: nil, id: id}),
     do: AI.Runner.start(:grouping, id)
 
-  defp start_ai("grouping", %Retro{stage: "voting", id: id}), do: AI.Runner.start(:labeling, id)
   defp start_ai(_from, %Retro{}), do: :skipped
+
+  defp after_commit("action-items", %Retro{stage: "closed", id: id}) do
+    if Application.get_env(:remote_retro, :async_mail, true) do
+      {:ok, _pid} =
+        Task.Supervisor.start_child(RemoteRetro.TaskSupervisor, fn -> deliver_and_log(id) end)
+
+      :ok
+    else
+      deliver_and_log(id)
+    end
+  end
+
+  defp after_commit(_from, %Retro{}), do: :ok
+
+  defp deliver_and_log(retro_id) do
+    case deliver_action_items(retro_id) do
+      {:error, reason} ->
+        Logger.warning(
+          "Action-item email for retro #{retro_id} failed: #{inspect(mail_error(reason))}"
+        )
+
+      _ ->
+        :ok
+    end
+  rescue
+    e ->
+      Logger.error("Action-item email for retro #{retro_id} crashed: #{inspect(e.__struct__)}")
+  end
+
+  # Adapter errors can echo the request (addresses, idea text); log the shape only.
+  defp mail_error({status, _body}) when is_integer(status), do: {:http_status, status}
+  defp mail_error(reason) when is_atom(reason), do: reason
+  defp mail_error(%{__struct__: struct}), do: struct
+  defp mail_error(_), do: :unknown
+
+  @doc """
+  Emails the retro's action items to each participant with an address, one
+  message each. Returns:
+
+    * `:skipped` when there are no action items
+    * `:unchanged` when these exact action items (id, body, owner) were
+      already emailed for this retro, so re-closing doesn't spam
+    * `{:ok, sent_count}` after sending; the digest is stored first
+    * `{:error, reason}` when nothing could be sent (the digest is restored,
+      so the next close tries again)
+  """
+  def deliver_action_items(retro_id) do
+    items = list_action_items(retro_id)
+
+    if items == [] do
+      :skipped
+    else
+      digest = action_items_digest(items)
+      retro = get_retro!(retro_id)
+
+      if claim_digest(retro_id, digest) do
+        send_action_items(retro, items, digest)
+      else
+        :unchanged
+      end
+    end
+  end
+
+  defp send_action_items(retro, items, digest) do
+    results =
+      retro
+      |> Emails.action_items(items, list_participants(retro.id))
+      |> Enum.map(&Mailer.deliver/1)
+
+    case Enum.split_with(results, &match?({:ok, _}, &1)) do
+      {[], [{:error, reason} | _]} ->
+        Repo.update_all(
+          from(r in Retro, where: r.id == ^retro.id and r.action_items_emailed_digest == ^digest),
+          set: [action_items_emailed_digest: retro.action_items_emailed_digest]
+        )
+
+        {:error, reason}
+
+      {sent, failed} ->
+        if failed != [],
+          do: Logger.warning("Action-item email for retro #{retro.id}: #{length(failed)} failed")
+
+        {:ok, length(sent)}
+    end
+  end
+
+  # Atomically records the digest; false when it was already the stored one.
+  defp claim_digest(retro_id, digest) do
+    {count, _} =
+      Repo.update_all(
+        from(r in Retro,
+          where:
+            r.id == ^retro_id and
+              (is_nil(r.action_items_emailed_digest) or r.action_items_emailed_digest != ^digest)
+        ),
+        set: [action_items_emailed_digest: digest]
+      )
+
+    count == 1
+  end
+
+  @doc "Action items of a retro, oldest first, with `:assignee` preloaded."
+  def list_action_items(retro_id) do
+    Repo.all(
+      from i in Idea,
+        where: i.retro_id == ^retro_id and i.category == ^Formats.action_item(),
+        order_by: i.id,
+        preload: :assignee
+    )
+  end
+
+  @doc "sha256 (hex) of the action items' `{id, body, assignee_id}`, order-independent."
+  def action_items_digest(items) do
+    items
+    |> Enum.map(&[&1.id, &1.body, &1.assignee_id])
+    |> Enum.sort()
+    |> Jason.encode!()
+    |> then(&:crypto.hash(:sha256, &1))
+    |> Base.encode16(case: :lower)
+  end
 
   @doc "Hands the facilitator role to another participant (current facilitator only)."
   def change_facilitator(%Retro{id: retro_id}, actor_id, user_id) do

@@ -8,6 +8,7 @@ import {
   selectRetro,
   selectTypingUserIds,
   selectVoteCountsByUser,
+  selectVotersRemaining,
 } from "../store/selectors"
 import { handOffFacilitator } from "../store/thunks"
 import type { User } from "../types"
@@ -30,9 +31,12 @@ export function UserList() {
 
   return (
     <section aria-labelledby={headingId}>
-      <h2 id={headingId} className="mb-2 flex items-center gap-2 text-sm font-semibold">
-        Here now <span className="badge badge-sm badge-ghost">{users.length}</span>
-      </h2>
+      <div className="mb-2 flex items-center gap-2">
+        <h2 id={headingId} className="flex items-center gap-2 text-sm font-semibold">
+          Here now <span className="badge badge-sm badge-ghost">{users.length}</span>
+        </h2>
+        {stage === "voting" && <VotingStatus />}
+      </div>
       <ul className="space-y-1">
         {users.map((user) => {
           const facilitator = user.id === retro?.facilitator_id
@@ -111,6 +115,23 @@ export function AvatarStack({ users, max = 4 }: { users: User[]; max?: number })
         <span className="inline-grid size-6 place-items-center rounded-full bg-base-300 text-[0.6rem] font-semibold ring-2 ring-base-100">
           +{extra}
         </span>
+      )}
+    </span>
+  )
+}
+
+/** Terse, fixed-position voting progress so the list below never shifts. */
+function VotingStatus() {
+  const remaining = useAppSelector(selectVotersRemaining)
+  return (
+    <span role="status" aria-live="polite" className="ml-auto text-xs font-medium whitespace-nowrap">
+      {remaining === 0 ? (
+        <span className="flex items-center gap-1 text-success">
+          <span className="hero-check-circle-micro size-4" aria-hidden="true" />
+          All voted
+        </span>
+      ) : (
+        <span className="text-base-content/60">{remaining} still voting</span>
       )}
     </span>
   )

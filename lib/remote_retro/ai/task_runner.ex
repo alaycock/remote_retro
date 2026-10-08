@@ -20,7 +20,7 @@ defmodule RemoteRetro.AI.TaskRunner do
   @timeout 45_000
 
   @impl true
-  def start(kind, retro_id) when kind in [:grouping, :labeling] do
+  def start(kind, retro_id) when kind == :grouping do
     with {:ok, work} <- prepare(kind, retro_id) do
       mark_busy(kind, retro_id)
 
@@ -35,7 +35,7 @@ defmodule RemoteRetro.AI.TaskRunner do
   Synchronous version of `start/2`. Returns `:skipped`, `:ok` or `{:error, reason}`.
   Options: `:timeout` (ms, default 45s), `:force` (run even when AI is disabled).
   """
-  def run(kind, retro_id, opts \\ []) when kind in [:grouping, :labeling] do
+  def run(kind, retro_id, opts \\ []) when kind == :grouping do
     with {:ok, work} <- prepare(kind, retro_id, opts[:force] == true) do
       mark_busy(kind, retro_id)
       execute(kind, retro_id, work, Keyword.get(opts, :timeout, @timeout))
@@ -46,7 +46,6 @@ defmodule RemoteRetro.AI.TaskRunner do
     cond do
       not (force or AI.enabled?()) -> :skipped
       kind == :grouping -> retro_id |> Apply.grouping_candidates() |> at_least(2)
-      kind == :labeling -> retro_id |> Apply.labeling_candidates() |> at_least(1)
     end
   end
 
@@ -84,21 +83,6 @@ defmodule RemoteRetro.AI.TaskRunner do
       suggestions = Prompts.validate_grouping(response, Enum.map(ideas, & &1.id))
       {:ok, applied} = Apply.apply_grouping(retro_id, suggestions)
       {:ok, Map.merge(applied, %{ideas: length(ideas), suggested: suggestions_count(response)})}
-    end
-  end
-
-  defp perform(:labeling, retro_id, groups) do
-    {system, user, schema} = Prompts.labeling(groups)
-
-    with {:ok, response} <- Client.generate_json(system, user, schema) do
-      labels = Prompts.validate_labeling(response, Enum.map(groups, & &1.id))
-
-      {:ok,
-       %{
-         groups: length(groups),
-         proposed: map_size(labels),
-         labeled: Apply.apply_labels(retro_id, labels)
-       }}
     end
   end
 

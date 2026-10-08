@@ -13,6 +13,9 @@ deps/, _build/, assets/node_modules/ and the DB live in Docker volumes, not on t
 Sign in: Google OAuth via ../env.sh (gitignored `export REMOTE_RETRO_GOOGLE_OAUTH_*=...` lines,
 loaded automatically). In dev you can skip Google: http://localhost:4000/dev/login?email=you@example.com
 
+Email: closing a retro emails its action items. In dev nothing leaves the machine; open the
+mailbox preview at http://localhost:4000/dev/mailbox to read them.
+
 Gemini (optional): credentials live in `~/.config/gcloud-remote-retro` (mounted read-only),
 kept apart from any other gcloud identity. No local gcloud needed — run it in a container:
 

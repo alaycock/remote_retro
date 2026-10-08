@@ -78,7 +78,7 @@ export function IdeaCard({ idea, author, canEdit, onSave, onDelete, meta }: Idea
       <div className="card-body gap-1 p-3">
         <p className="text-sm break-words whitespace-pre-wrap">{idea.body}</p>
         <div className="flex items-center justify-between gap-2 text-xs text-base-content/50">
-          <span className="truncate">{meta ?? author?.given_name}</span>
+          {meta ? <div className="min-w-0">{meta}</div> : <span className="truncate">{author?.given_name}</span>}
           {canEdit && !pending && (
             <span className="flex gap-0.5 opacity-70 group-hover:opacity-100 focus-within:opacity-100">
               <button
