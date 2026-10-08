@@ -38,3 +38,6 @@ npm-debug.log
 
 # local dev secrets
 /env.sh
+
+# production OAuth client (deploy/)
+/deploy/env.prod.sh

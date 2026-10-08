@@ -13,11 +13,12 @@ DB_USER="remote_retro"
 REPO="remote-retro"
 SA_NAME="remote-retro-run"
 
-# OAuth client id/secret come from the repo's gitignored env.sh (never uploaded).
+# Production OAuth client id/secret come from deploy/env.prod.sh (gitignored, never
+# uploaded) — deliberately not the dev env.sh. See deploy/env.prod.sh.example.
 # shellcheck disable=SC1091
-[ -f env.sh ] && source env.sh
-: "${REMOTE_RETRO_GOOGLE_OAUTH_CLIENT_ID:?set in env.sh}"
-: "${REMOTE_RETRO_GOOGLE_OAUTH_CLIENT_SECRET:?set in env.sh}"
+[ -f deploy/env.prod.sh ] && source deploy/env.prod.sh
+: "${REMOTE_RETRO_GOOGLE_OAUTH_CLIENT_ID:?set in deploy/env.prod.sh}"
+: "${REMOTE_RETRO_GOOGLE_OAUTH_CLIENT_SECRET:?set in deploy/env.prod.sh}"
 
 gcloud config set project "$PROJECT" --quiet >/dev/null
 gcloud config set run/region "$REGION" --quiet >/dev/null

@@ -30,10 +30,21 @@ gcloud runs in a container (`deploy/run.sh`), using its own config dir
 
 3. First deploy only: add the printed redirect URI
    (`https://remote-retro-<project-number>.us-central1.run.app/auth/google/callback`) to the
-   OAuth client's **Authorized redirect URIs** in the Google Cloud Console
-   (*APIs & Services → Credentials*, in whichever project owns the client in `env.sh`).
+   production OAuth client's **Authorized redirect URIs** in the Google Cloud Console
+   (*APIs & Services → Credentials*).
 
 Migrations run automatically when the container starts.
+
+## Production OAuth client
+
+Prod uses its own OAuth client, kept in `deploy/env.prod.sh` (gitignored; copy
+`deploy/env.prod.sh.example`). `deploy.sh` reads it — never the dev `env.sh`. To switch the
+live service to a new client without a rebuild:
+
+    cp deploy/env.prod.sh.example deploy/env.prod.sh   # then fill in the id + secret
+    deploy/run.sh ./deploy/set-oauth.sh
+
+This stores the secret as a new Secret Manager version and rolls a revision with the new id.
 
 Override defaults with env vars, e.g. `deploy/run.sh env SQL_TIER=db-g1-small ./deploy/deploy.sh`.
 

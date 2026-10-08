@@ -6,7 +6,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 mkdir -p "$HOME/.config/gcloud-remote-retro"
-tty_flag=""; [ -t 0 ] && tty_flag="-it"
+# Always pass stdin (so values can be piped in); add a TTY only when interactive.
+tty_flag="-i"; [ -t 0 ] && tty_flag="-it"
 exec docker run --rm $tty_flag \
   -v "$HOME/.config/gcloud-remote-retro:/root/.config/gcloud" \
   -v "$PWD:/workspace" -w /workspace \
