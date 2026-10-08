@@ -41,39 +41,119 @@
   <section class="mx-auto mt-20 max-w-3xl" aria-labelledby="faq-heading">
     <h2 id="faq-heading" class="text-center text-2xl font-semibold">Questions</h2>
     <div class="mt-6 space-y-2">
-      <details
-        :for={
-          {question, answer} <- [
-            {"What's a retro?",
-             "Short for retrospective: a regular meeting where a team reflects on its recent work, identifies what to improve, and agrees on action items to make those improvements."},
-            {"How much does it cost?", "Nothing. Remote Retro is free and open source."},
-            {"Who can join?",
-             "Anyone with a Google account who has the retro's link. Share the link from the lobby."},
-            {"How does a retro work here?",
-             "The facilitator guides everyone through each stage: the Prime Directive, sharing ideas, grouping and labeling them, voting, and agreeing on action items. Facilitators can step back a stage at any time, and re-open a closed retro."},
-            {"What does the AI do?",
-             "When enabled, Google's Gemini groups only clearly related ideas when you start grouping, and names a group only when an obvious title exists. Everything it does can be changed by hand."},
-            {"How many people should take part?",
-             "Ideally no more than about ten. Larger groups make it easy for people to disengage."},
-            {"How long should a retro take?",
-             "Budget about an hour for a sprint retrospective. Much shorter tends to stay on the surface; much longer tends to tire people out."},
-            {"Our team is in one room. Should we use it?",
-             "It works well on a shared screen for ideas, grouping and voting. During discussion and action items, put laptops away and talk face to face."}
-          ]
-        }
-        class="collapse-arrow collapse border border-base-300 bg-base-100"
-      >
-        <summary class="collapse-title font-medium">{question}</summary>
-        <div class="collapse-content text-base-content/75">
-          <p>{answer}</p>
-        </div>
-      </details>
-      <details class="collapse-arrow collapse border border-base-300 bg-base-100">
-        <summary class="collapse-title font-medium">How is my data handled?</summary>
-        <div class="collapse-content text-base-content/75">
-          <p>See the <a href={~p"/privacy"} class="link">privacy policy</a>.</p>
-        </div>
-      </details>
+      <.faq question="What's a retro?">
+        <p>
+          A retrospective is a regular meeting where a team looks back on its recent work, talks about what went well and what didn't, and agrees on concrete changes to try next.
+        </p>
+        <p>
+          Read more on
+          <a
+            href="https://en.wikipedia.org/wiki/Retrospective#Software_development"
+            class="link"
+            rel="noopener"
+            target="_blank"
+          >Wikipedia</a>
+          or in the <a
+            href="https://scrumguides.org/scrum-guide.html#sprint-retrospective"
+            class="link"
+            rel="noopener"
+            target="_blank"
+          >Scrum Guide</a>.
+        </p>
+      </.faq>
+
+      <.faq question="How much does it cost?">
+        <p>Nothing. Remote Retro is free and open source.</p>
+      </.faq>
+
+      <.faq question="Who can join?">
+        <p>
+          Every retro is private to your team. It lives at its own unguessable link, and only people you share that link with can join, after signing in with Google.
+        </p>
+      </.faq>
+
+      <.faq question="How does a retro work?">
+        <p>The facilitator guides everyone through each stage, one at a time:</p>
+        <.stage_steps />
+        <ul class="list-disc space-y-1 pl-5">
+          <li><strong>Lobby:</strong> the team gathers and the facilitator shares the link.</li>
+          <li>
+            <strong>Prime Directive:</strong>
+            everyone agrees to Norm Kerth's <a
+              href="https://retrospectivewiki.org/index.php?title=The_Prime_Directive"
+              class="link"
+              rel="noopener"
+              target="_blank"
+            >Prime Directive</a>, so the conversation stays blameless.
+          </li>
+          <li>
+            <strong>Ideas:</strong>
+            everyone adds what made them happy, sad or confused (or what to start, stop and continue), live.
+          </li>
+          <li>
+            <strong>Group & label:</strong>
+            related ideas are dragged together on a shared board and each group gets a short name.
+          </li>
+          <li>
+            <strong>Voting:</strong>
+            everyone spends three votes, blind, on the topics that matter most.
+          </li>
+          <li>
+            <strong>Action items:</strong>
+            the team discusses the top topics and agrees on action items, each with an owner.
+          </li>
+          <li>
+            <strong>Closed:</strong>
+            a summary of the topics and action items. The facilitator can re-open it if needed.
+          </li>
+        </ul>
+        <p>The facilitator can step back a stage at any time.</p>
+      </.faq>
+
+      <.faq question="What features exist?">
+        <ul class="list-disc space-y-1 pl-5">
+          <li>
+            <strong>Real-time ideas:</strong>
+            everyone's ideas appear live, with a typing indicator, and authors can edit or delete their own.
+          </li>
+          <li>
+            <strong>Shared, draggable board:</strong>
+            an infinite canvas you pan and zoom, where you drag sticky notes so they overlap to form groups and label each group in place. A list view shows the same groups for naming them and moving ideas between groups.
+          </li>
+          <li>
+            <strong>AI grouping and labelling:</strong>
+            when grouping starts, Google's Gemini does a first pass, putting only clearly related ideas together and naming a group when an obvious title exists. Everything it does can be changed by hand.
+          </li>
+          <li>
+            <strong>Blind voting:</strong>
+            three votes each, with totals revealed once voting ends.
+          </li>
+          <li>
+            <strong>Action items by email:</strong>
+            when the retro closes, every participant is emailed the action items and their owners, with a link back to the retro.
+          </li>
+        </ul>
+      </.faq>
+
+      <.faq question="How many people should take part?">
+        <p>Ideally no more than about ten. Larger groups make it easy for people to disengage.</p>
+      </.faq>
+
+      <.faq question="How long should a retro take?">
+        <p>
+          Budget about an hour for a sprint retrospective. Much shorter tends to stay on the surface; much longer tends to tire people out.
+        </p>
+      </.faq>
+
+      <.faq question="Our team is in one room. Should we use it?">
+        <p>
+          It works well on a shared screen for ideas, grouping and voting. During discussion and action items, put laptops away and talk face to face.
+        </p>
+      </.faq>
+
+      <.faq question="How is my data handled?">
+        <p>See the <a href={~p"/privacy"} class="link">privacy policy</a>.</p>
+      </.faq>
     </div>
   </section>
 </Layouts.app>
