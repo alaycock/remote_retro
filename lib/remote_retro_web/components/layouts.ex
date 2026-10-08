@@ -69,7 +69,7 @@ defmodule RemoteRetroWeb.Layouts do
                 :if={@current_user.picture}
                 src={@current_user.picture}
                 referrerpolicy="no-referrer"
-                class="size-8 rounded-full"
+                class="size-full rounded-full object-cover"
                 alt=""
               />
               <.icon :if={!@current_user.picture} name="hero-user-circle" class="size-7" />

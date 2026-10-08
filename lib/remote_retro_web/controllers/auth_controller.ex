@@ -14,10 +14,17 @@ defmodule RemoteRetroWeb.AuthController do
     conn |> put_flash(:error, "Google sign-in was cancelled.") |> redirect(to: ~p"/")
   end
 
-  @doc "Dev-only: sign in as any email without Google (route only exists with :dev_routes)."
+  @doc """
+  Dev-only: sign in as any email without Google (route only exists with :dev_routes).
+  Optional `name` and `picture` params help exercise avatars.
+  """
   def dev_login(conn, %{"email" => email} = params) do
     name = params["name"] || email |> String.split("@") |> hd() |> String.capitalize()
-    sign_in(%{"email" => email, "name" => name, "given_name" => name}, conn)
+
+    sign_in(
+      %{"email" => email, "name" => name, "given_name" => name, "picture" => params["picture"]},
+      conn
+    )
   end
 
   def logout(conn, _params) do
