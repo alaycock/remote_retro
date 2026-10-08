@@ -23,15 +23,7 @@ defmodule RemoteRetroWeb.PageHTML do
     """
   end
 
-  @stages [
-    "Lobby",
-    "Prime Directive",
-    "Ideas",
-    "Group & label",
-    "Voting",
-    "Action items",
-    "Closed"
-  ]
+  @stages ["Prime Directive", "Ideas", "Group & label", "Voting", "Action items"]
 
   @doc "The retro stages as a compact row of steps."
   def stage_steps(assigns) do
