@@ -218,3 +218,17 @@ export const handOffFacilitator = createAppAsyncThunk(
 export const sendTyping = createAppAsyncThunk("presence/sendTyping", async (_: void, { extra }) => {
   await extra.channel.push("user:typing", {}).catch(() => undefined)
 })
+
+/** Dev only: fill the retro with sample ideas. The server broadcasts a snapshot. */
+export const seedSampleIdeas = createAppAsyncThunk(
+  "dev/seedIdeas",
+  async (_: void, { dispatch, extra, rejectWithValue }) => {
+    try {
+      const { count } = await extra.channel.push<"dev:seed_ideas", { count: number }>("dev:seed_ideas", {})
+      dispatch(toastShown("info", `Added ${count} sample ideas.`))
+      return count
+    } catch (error) {
+      return rejectWithValue(report(dispatch, error, "Sample ideas weren't added."))
+    }
+  },
+)

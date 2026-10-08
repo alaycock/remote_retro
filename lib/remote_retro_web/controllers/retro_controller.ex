@@ -36,6 +36,7 @@ defmodule RemoteRetroWeb.RetroController do
         |> render(:show,
           retro: retro,
           user_token: UserSocket.sign_token(conn, user.id),
+          dev_tools: Application.get_env(:remote_retro, :dev_routes, false),
           page_title: "Retro"
         )
     end

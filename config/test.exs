@@ -40,3 +40,6 @@ config :remote_retro, :ai_client, RemoteRetro.AI.ClientMock
 config :remote_retro, RemoteRetro.Mailer, adapter: Swoosh.Adapters.Test
 config :remote_retro, :async_mail, false
 config :swoosh, :api_client, false
+
+# Compile dev-only code paths (dev routes, `dev:seed_ideas`) so they're tested.
+config :remote_retro, dev_routes: true

@@ -160,6 +160,20 @@ defmodule RemoteRetroWeb.RetroChannel do
     Reply.ok(socket, %{})
   end
 
+  if Application.compile_env(:remote_retro, :dev_routes) do
+    # Dev-only test data (see RemoteRetro.DevSeed); the clause doesn't exist in prod.
+    def handle_in("dev:seed_ideas", _params, socket) do
+      case RemoteRetro.DevSeed.seed_ideas(retro(socket)) do
+        {:ok, count} ->
+          RemoteRetro.Broadcast.snapshot(socket.assigns.retro_id)
+          Reply.ok(socket, %{count: count})
+
+        error ->
+          Reply.error(socket, error)
+      end
+    end
+  end
+
   def handle_in(_event, _params, socket), do: Reply.error(socket, {:error, :invalid})
 
   defp retro(socket), do: Retros.get_retro!(socket.assigns.retro_id)

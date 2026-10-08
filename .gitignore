@@ -41,3 +41,6 @@ npm-debug.log
 
 # production OAuth client (deploy/)
 /deploy/env.prod.sh
+
+# local dev sample data (may contain real retro content)
+/priv/dev/
