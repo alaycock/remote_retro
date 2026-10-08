@@ -10,10 +10,11 @@ defmodule RemoteRetro.StagesTest do
   end
 
   test "adjacent? allows exactly one step either way" do
-    assert Stages.adjacent?("grouping", "labeling")
-    assert Stages.adjacent?("labeling", "grouping")
+    assert Stages.adjacent?("grouping", "voting")
+    assert Stages.adjacent?("voting", "grouping")
+    refute Stages.valid?("labeling")
     assert Stages.adjacent?("closed", "action-items")
-    refute Stages.adjacent?("grouping", "voting")
+    refute Stages.adjacent?("grouping", "action-items")
     refute Stages.adjacent?("grouping", "grouping")
     refute Stages.adjacent?("closed", nil)
   end

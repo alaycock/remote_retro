@@ -3,7 +3,7 @@ defmodule RemoteRetro.Ideas do
   Ideas (including action items). Always scoped to a retro.
 
   Regular ideas are written during `idea-generation` and moved on the board
-  during `grouping`/`labeling`; action items (category `"action-item"`) are
+  during `grouping` (which is also where groups are labeled); action items (category `"action-item"`) are
   written during `action-items` and must be assigned to a participant.
   """
   import Ecto.Query

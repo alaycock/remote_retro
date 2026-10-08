@@ -89,7 +89,7 @@ defmodule RemoteRetro.AI.ApplyTest do
   describe "apply_labels/2" do
     test "only fills groups that are still unlabeled" do
       user = user_fixture()
-      retro = retro_fixture(user, %{stage: "labeling"})
+      retro = retro_fixture(user, %{stage: "voting"})
       open = group_fixture(retro)
       taken = group_fixture(retro, %{label: "User label", label_source: "user"})
       other_retro_group = group_fixture(retro_fixture(user))

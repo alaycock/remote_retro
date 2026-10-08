@@ -80,10 +80,12 @@ defmodule RemoteRetro.Retros do
   @doc """
   Moves the retro one stage forward or back on behalf of the facilitator.
 
-  Entering `grouping` lays out unpositioned ideas and syncs groups; entering
-  `labeling` syncs groups. After commit, every client gets a fresh `snapshot`
-  and the AI runner is started for those two stages (the runner decides
-  whether AI is enabled; grouping runs only until it has succeeded once).
+  Entering `grouping` lays out unpositioned ideas and syncs groups; moving
+  forward from `grouping` to `voting` syncs groups once more. After commit,
+  every client gets a fresh `snapshot` and the AI runner is started: a
+  grouping pass on entering `grouping` (only until it has succeeded once) and
+  a labeling pass for still-unlabeled groups on the way into `voting`. The
+  runner decides whether AI is enabled.
   Moving back from `closed` re-opens the retro with no side effects.
   """
   def change_stage(%Retro{id: retro_id}, to_stage, actor_id) do
@@ -94,15 +96,15 @@ defmodule RemoteRetro.Retros do
         with :ok <- ensure_facilitator(retro, actor_id),
              :ok <- ensure_ai_idle(retro),
              :ok <- ensure_adjacent(retro.stage, to_stage),
-             {:ok, retro} <- update_retro(retro, %{stage: to_stage}),
-             :ok <- enter_stage(retro) do
-          {:ok, retro}
+             {:ok, updated} <- update_retro(retro, %{stage: to_stage}),
+             :ok <- enter_stage(retro.stage, updated) do
+          {:ok, {retro.stage, updated}}
         end
       end)
 
-    with {:ok, retro} <- result do
+    with {:ok, {from, retro}} <- result do
       Broadcast.snapshot(retro.id)
-      start_ai(retro)
+      start_ai(from, retro)
       {:ok, retro}
     end
   end
@@ -116,24 +118,24 @@ defmodule RemoteRetro.Retros do
 
   defp ensure_adjacent(_from, _to), do: {:error, :invalid_stage}
 
-  defp enter_stage(%Retro{stage: "grouping", id: id}) do
+  defp enter_stage(_from, %Retro{stage: "grouping", id: id}) do
     {:ok, _} = Layout.place_unpositioned(id)
     {:ok, _} = Groups.sync(id)
     :ok
   end
 
-  defp enter_stage(%Retro{stage: "labeling", id: id}) do
+  defp enter_stage("grouping", %Retro{stage: "voting", id: id}) do
     {:ok, _} = Groups.sync(id)
     :ok
   end
 
-  defp enter_stage(%Retro{}), do: :ok
+  defp enter_stage(_from, %Retro{}), do: :ok
 
-  defp start_ai(%Retro{stage: "grouping", ai_grouped_at: nil, id: id}),
+  defp start_ai(_from, %Retro{stage: "grouping", ai_grouped_at: nil, id: id}),
     do: AI.Runner.start(:grouping, id)
 
-  defp start_ai(%Retro{stage: "labeling", id: id}), do: AI.Runner.start(:labeling, id)
-  defp start_ai(%Retro{}), do: :skipped
+  defp start_ai("grouping", %Retro{stage: "voting", id: id}), do: AI.Runner.start(:labeling, id)
+  defp start_ai(_from, %Retro{}), do: :skipped
 
   @doc "Hands the facilitator role to another participant (current facilitator only)."
   def change_facilitator(%Retro{id: retro_id}, actor_id, user_id) do

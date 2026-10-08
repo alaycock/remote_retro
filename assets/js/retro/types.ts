@@ -5,7 +5,6 @@ export const STAGES = [
   "prime-directive",
   "idea-generation",
   "grouping",
-  "labeling",
   "voting",
   "action-items",
   "closed",

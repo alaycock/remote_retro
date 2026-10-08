@@ -34,7 +34,7 @@ defmodule RemoteRetro.RetrosStageTest do
     retro = retro_fixture(f, %{stage: "idea-generation"})
 
     assert {:error, :forbidden} = Retros.change_stage(retro, "grouping", g.id)
-    assert {:error, :invalid_stage} = Retros.change_stage(retro, "labeling", f.id)
+    assert {:error, :invalid_stage} = Retros.change_stage(retro, "voting", f.id)
     assert {:error, :invalid_stage} = Retros.change_stage(retro, "nope", f.id)
     assert {:error, :invalid_stage} = Retros.change_stage(retro, nil, f.id)
 
@@ -58,21 +58,27 @@ defmodule RemoteRetro.RetrosStageTest do
 
   test "AI grouping only runs until it has succeeded once", %{facilitator: f} do
     retro =
-      retro_fixture(f, %{stage: "labeling"})
+      retro_fixture(f, %{stage: "voting"})
       |> update_fixture!(%{ai_grouped_at: DateTime.utc_now()})
 
     # No expectation: a call would fail verify_on_exit!.
     assert {:ok, %{stage: "grouping"}} = Retros.change_stage(retro, "grouping", f.id)
   end
 
-  test "entering labeling syncs and starts AI labeling", %{facilitator: f} do
+  test "moving on from grouping to voting syncs and starts AI labeling", %{facilitator: f} do
     retro = retro_fixture(f, %{stage: "grouping"})
     idea = idea_fixture(retro, f, %{x: 0.0, y: 0.0})
     id = retro.id
     expect(RunnerMock, :start, fn :labeling, ^id -> :skipped end)
 
-    assert {:ok, _} = Retros.change_stage(retro, "labeling", f.id)
+    assert {:ok, _} = Retros.change_stage(retro, "voting", f.id)
     assert Repo.reload!(idea).group_id
+  end
+
+  test "coming back to voting from action items does not relabel", %{facilitator: f} do
+    retro = retro_fixture(f, %{stage: "action-items"})
+    # No expectation: a call would fail verify_on_exit!.
+    assert {:ok, %{stage: "voting"}} = Retros.change_stage(retro, "voting", f.id)
   end
 
   test "going back from voting keeps votes", %{facilitator: f} do
@@ -82,7 +88,7 @@ defmodule RemoteRetro.RetrosStageTest do
     vote = vote_fixture(group, f)
     stub(RunnerMock, :start, fn _, _ -> :skipped end)
 
-    assert {:ok, _} = Retros.change_stage(retro, "labeling", f.id)
+    assert {:ok, _} = Retros.change_stage(retro, "grouping", f.id)
     assert Repo.reload(vote)
   end
 

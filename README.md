@@ -18,13 +18,14 @@ via `http://localhost:4000/dev/login?email=you@example.com`.
 
 ## Retro flow
 
-`lobby → prime-directive → idea-generation → grouping → labeling → voting → action-items → closed`
+`lobby → prime-directive → idea-generation → grouping (group & label) → voting → action-items → closed`
 
 - The facilitator moves one stage forward or back; going back from `closed` re-opens the retro.
-- Grouping: drag stickies so they overlap to form a group; label groups inline. The board is
-  unbounded — pan by dragging empty space, zoom with ctrl/⌘-scroll, pinch, or the controls.
+- Grouping & labeling is one stage with two views: the **board** (drag stickies so they overlap
+  to form a group, label groups inline; unbounded — pan by dragging empty space, zoom with
+  ctrl/⌘-scroll, pinch, or the controls) and a **list** for naming groups.
 - With `GCP_PROJECT` set, Gemini (Vertex AI) does a conservative first pass at grouping when the
-  grouping stage starts, and suggests labels for unlabeled groups when labeling starts.
+  grouping stage starts, and suggests labels for still-unlabeled groups when moving on to voting.
 
 ## Configuration
 

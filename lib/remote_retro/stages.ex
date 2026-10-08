@@ -6,7 +6,7 @@ defmodule RemoteRetro.Stages do
   `closed` re-opens the retro.
   """
 
-  @stages ~w(lobby prime-directive idea-generation grouping labeling voting action-items closed)
+  @stages ~w(lobby prime-directive idea-generation grouping voting action-items closed)
 
   def all, do: @stages
 

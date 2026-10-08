@@ -187,7 +187,7 @@ defmodule RemoteRetroWeb.RetroChannelTest do
         reason: "invalid_stage"
       }
 
-      Repo.update!(Ecto.Changeset.change(retro, stage: "labeling"))
+      Repo.update!(Ecto.Changeset.change(retro, stage: "grouping"))
 
       assert_reply push(socket, "idea:move", %{"id" => idea.id, "x" => "1", "y" => 1}), :error, %{
         reason: "invalid"
@@ -195,7 +195,7 @@ defmodule RemoteRetroWeb.RetroChannelTest do
     end
 
     test "group:update sets a user label", %{facilitator: f, guest: g} do
-      retro = retro_fixture(f, %{stage: "labeling"})
+      retro = retro_fixture(f, %{stage: "grouping"})
       group = group_fixture(retro)
       socket = room(g, retro)
 
@@ -218,7 +218,7 @@ defmodule RemoteRetroWeb.RetroChannelTest do
             {"idea:create", %{"category" => "happy", "body" => "x"}},
             {"idea:delete", %{"id" => idea.id}},
             {"group:update", %{"id" => group.id, "label" => "x"}},
-            {"retro:stage", %{"stage" => "labeling"}}
+            {"retro:stage", %{"stage" => "voting"}}
           ] do
         ref = push(socket, event, payload)
         assert_reply ref, :error, %{reason: "ai_busy"}
@@ -258,7 +258,7 @@ defmodule RemoteRetroWeb.RetroChannelTest do
         reason: "not_found"
       }
 
-      Repo.update!(Ecto.Changeset.change(retro, stage: "labeling"))
+      Repo.update!(Ecto.Changeset.change(retro, stage: "grouping"))
 
       assert_reply push(socket, "vote:create", %{"group_id" => foreign.id}), :error, %{
         reason: "invalid_stage"

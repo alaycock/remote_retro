@@ -7,19 +7,22 @@ import { selectAiStatus, selectGroupsWithIdeas, type GroupWithIdeas } from "../s
 import { updateGroupLabel } from "../store/thunks"
 
 type View = "list" | "board"
-const VIEW_KEY = "remote_retro:labeling_view"
+const VIEW_KEY = "remote_retro:grouping_view"
 const SAVE_DEBOUNCE_MS = 400
 
 function storedView(): View {
   try {
-    return localStorage.getItem(VIEW_KEY) === "board" ? "board" : "list"
+    return localStorage.getItem(VIEW_KEY) === "list" ? "list" : "board"
   } catch {
-    return "list"
+    return "board"
   }
 }
 
-/** Labeling: a clear list of groups to name, with the board one click away for regrouping. */
-export function Labeling() {
+/**
+ * Group & label: the board for dragging ideas into groups (labels float above each
+ * group), and a list view for naming groups clearly. Same data, two views.
+ */
+export function Grouping() {
   const [view, setView] = useState<View>(storedView)
   const choose = (next: View) => {
     setView(next)
@@ -33,8 +36,8 @@ export function Labeling() {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-center justify-end gap-2 border-b border-base-300 bg-base-100 px-4 py-2">
-        <div role="tablist" aria-label="Labeling view" className="tabs tabs-box tabs-sm">
-          {(["list", "board"] as const).map((key) => (
+        <div role="tablist" aria-label="Grouping view" className="tabs tabs-box tabs-sm">
+          {(["board", "list"] as const).map((key) => (
             <button
               key={key}
               type="button"
@@ -49,7 +52,7 @@ export function Labeling() {
           ))}
         </div>
       </div>
-      <div className="min-h-0 flex-1">{view === "list" ? <LabelList onRegroup={() => choose("board")} /> : <Board mode="labeling" />}</div>
+      <div className="min-h-0 flex-1">{view === "list" ? <LabelList onRegroup={() => choose("board")} /> : <Board mode="grouping" />}</div>
     </div>
   )
 }
@@ -67,9 +70,9 @@ function LabelList({ onRegroup }: { onRegroup: () => void }) {
           <div>
             <h1 className="text-xl font-semibold">Name each group</h1>
             <p className="text-sm text-base-content/70">
-              Give each group a short title so it's easy to vote on. Need to regroup?{" "}
+              Give each group a short title so it's easy to vote on. To change the groups,{" "}
               <button type="button" className="link" onClick={onRegroup}>
-                Switch to the board
+                switch to the board
               </button>
               .
             </p>

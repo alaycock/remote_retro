@@ -1,9 +1,8 @@
 import type { ComponentType, ReactNode } from "react"
-import { Board } from "./board/Board"
 import { ActionItems } from "./stages/ActionItems"
 import { Closed } from "./stages/Closed"
+import { Grouping } from "./stages/Grouping"
 import { IdeaGeneration } from "./stages/IdeaGeneration"
-import { Labeling } from "./stages/Labeling"
 import { Lobby } from "./stages/Lobby"
 import { PrimeDirective } from "./stages/PrimeDirective"
 import { Voting } from "./stages/Voting"
@@ -54,7 +53,6 @@ const IDEA_GENERATION_GUIDANCE: Record<Format, string[]> = {
   ],
 }
 
-const GroupingBoard = () => <Board mode="grouping" />
 
 export const STAGE_CONFIGS: Record<Stage, StageConfig> = {
   lobby: {
@@ -100,34 +98,16 @@ export const STAGE_CONFIGS: Record<Stage, StageConfig> = {
   },
   grouping: {
     key: "grouping",
-    title: "Grouping",
-    short: "Grouping",
-    component: GroupingBoard,
+    title: "Group & label",
+    short: "Group & label",
+    component: Grouping,
     help: () => (
       <Guidance
         items={[
-          "Drag related ideas so they touch; overlapping cards form a group.",
-          "Leave unrelated ideas far apart.",
-          "Gemini may have already grouped clearly related ideas. Rearrange anything that doesn't fit.",
-          "If there's a disagreement, try to settle it without speaking.",
-        ]}
-      />
-    ),
-    nextCopy: "Labeling",
-    prevCopy: "Back",
-    fullBleed: true,
-  },
-  labeling: {
-    key: "labeling",
-    title: "Labeling",
-    short: "Labeling",
-    component: Labeling,
-    help: () => (
-      <Guidance
-        items={[
-          "Work as a team to give each group a sensible label.",
-          "Gemini suggests labels for unlabeled groups. Edit any that miss the mark.",
-          "Don't spend too long on any one group; an approximate label is good enough.",
+          "On the board, drag related ideas so they overlap; overlapping cards form a group. Leave unrelated ideas apart.",
+          "Give each group a short label, right on the board or in the list view.",
+          "Gemini may have already grouped clearly related ideas. Rearrange or relabel anything that doesn't fit.",
+          "Any groups still unlabeled get a suggested label from Gemini when you move on to voting.",
         ]}
       />
     ),
@@ -153,7 +133,7 @@ export const STAGE_CONFIGS: Record<Stage, StageConfig> = {
     ),
     nextCopy: "Action items",
     prevCopy: "Back",
-    prevWarning: "Votes are kept, but votes on any group that gets split or merged while labeling will be removed.",
+    prevWarning: "Votes are kept, but votes on any group that gets split or merged while regrouping will be removed.",
   },
   "action-items": {
     key: "action-items",

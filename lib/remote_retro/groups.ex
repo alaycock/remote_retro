@@ -6,7 +6,7 @@ defmodule RemoteRetro.Groups do
   alias RemoteRetro.Ideas.Idea
   alias RemoteRetro.Retros.Retro
 
-  @board_stages ~w(grouping labeling)
+  @board_stages ~w(grouping)
 
   @doc "Stages in which ideas can be moved and groups relabelled."
   def board_stages, do: @board_stages

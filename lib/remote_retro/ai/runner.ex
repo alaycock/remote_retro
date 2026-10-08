@@ -1,6 +1,7 @@
 defmodule RemoteRetro.AI.Runner do
   @moduledoc """
-  Boundary the stage machine calls when entering `grouping` or `labeling`.
+  Boundary the stage machine calls when entering `grouping` (grouping pass) and
+  when moving on from it to `voting` (labeling pass for still-unlabeled groups).
   The implementation is swappable so channel/stage tests can use a Mox mock.
   """
 

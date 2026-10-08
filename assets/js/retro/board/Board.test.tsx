@@ -239,7 +239,7 @@ describe("Board labeling mode", () => {
     const store = makeStore({ push: vi.fn().mockResolvedValue({}), on: vi.fn() } as unknown as RetroChannel)
     store.dispatch(
       snapshotReceived({
-        retro: { id: "r1", format: "happy_sad_confused", stage: "labeling", facilitator_id: 1, ai_status: null, inserted_at: "" },
+        retro: { id: "r1", format: "happy_sad_confused", stage: "grouping", facilitator_id: 1, ai_status: null, inserted_at: "" },
         users: [],
         ideas: [idea(1, 0, 0, 7), idea(2, 50, 40, 7), idea(3, 900, 0, 8), idea(4, 950, 40, 8), idea(5, 2000, 0, 9)],
         groups: [group(7), group(8, "Done", "user"), group(9)],

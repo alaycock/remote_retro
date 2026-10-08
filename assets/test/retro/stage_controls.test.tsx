@@ -22,10 +22,10 @@ describe("StageControls", () => {
 
   it("goes back immediately when nothing can be lost", async () => {
     const { channel, push } = mockChannel()
-    const store = setup(snapshot({ retro: retro({ stage: "labeling" }) }), { channel })
+    const store = setup(snapshot({ retro: retro({ stage: "action-items" }) }), { channel })
     renderWithStore(<StageControls />, store)
     await userEvent.click(screen.getByRole("button", { name: /^back/i }))
-    expect(push).toHaveBeenCalledWith("retro:stage", { stage: "grouping" })
+    expect(push).toHaveBeenCalledWith("retro:stage", { stage: "voting" })
   })
 
   it("drops a pending warning when the stage changes underneath it", async () => {
@@ -49,7 +49,7 @@ describe("StageControls", () => {
     expect(push).not.toHaveBeenCalled()
     await userEvent.click(screen.getByRole("button", { name: /^back/i }))
     await userEvent.click(screen.getByRole("button", { name: "Go back" }))
-    expect(push).toHaveBeenCalledWith("retro:stage", { stage: "labeling" })
+    expect(push).toHaveBeenCalledWith("retro:stage", { stage: "grouping" })
   })
 
   it("offers re-open (and no next) when closed", async () => {
