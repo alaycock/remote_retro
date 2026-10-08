@@ -29,6 +29,30 @@ defmodule RemoteRetro.GroupingTest do
     assert Grouping.clusters([card(1, 0, 0), card(2, 0, 111.5)]) == [[1, 2]]
   end
 
+  test "card_height/1 grows with wrapped lines and paragraphs, never below card_h" do
+    assert Grouping.card_height(nil) == 120
+    assert Grouping.card_height("") == 120
+    assert Grouping.card_height(String.duplicate("x", 72)) == 120
+    assert Grouping.card_height(String.duplicate("x", 73)) == 44 + 20 * 4
+    assert Grouping.card_height("a\nb\nc\nd\ne") == 144
+    # Code points, not bytes or graphemes.
+    assert Grouping.card_height(String.duplicate("é", 100)) == 44 + 20 * 5
+  end
+
+  test "tall cards cluster with what their extra height reaches, from their top-left" do
+    tall = String.duplicate("x", 200)
+    assert Grouping.clusters([card(1, 0, 0) |> Map.put(:body, tall), card(2, 0, 200)]) == [[1, 2]]
+    assert Grouping.clusters([card(1, 0, 0), card(2, 0, 200)]) == [[1], [2]]
+
+    assert Grouping.clusters([card(1, 0, 0), card(2, 0, 115) |> Map.put(:body, tall)]) == [
+             [1],
+             [2]
+           ]
+
+    assert Grouping.overlap?(%{x: 0, y: 0, body: tall}, %{x: 0, y: 215})
+    refute Grouping.overlap?(%{x: 0, y: 0, body: tall}, %{x: 0, y: 216})
+  end
+
   test "overlap must hold on both axes" do
     assert Grouping.clusters([card(1, 0, 0), card(2, 10, 200)]) == [[1], [2]]
   end

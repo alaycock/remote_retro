@@ -1,6 +1,6 @@
 import { CategoryIcon } from "../components/CategoryIcon"
 import { memo, useEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent, type PointerEvent } from "react"
-import { CARD_H, CARD_W } from "../constants"
+import { CARD_W, cardHeight } from "../constants"
 import { useAppDispatch } from "../store/hooks"
 import { ideaMovedLocally } from "../store/slices"
 import type { User } from "../types"
@@ -13,14 +13,9 @@ export const DRAG_PUSH_MS = 50
 export const NUDGE = 10
 const DRAG_THRESHOLD_PX = 3
 
-/** Step the font down for longer text so most ideas fit the fixed card. */
-export function fontSizeFor(body: string): number {
-  const n = body.length
-  if (n <= 50) return 16
-  if (n <= 90) return 14
-  if (n <= 150) return 12
-  return 11
-}
+/** Constant body type; `cardHeight` (constants.ts) sizes the card for it. */
+export const BODY_FONT_PX = 14
+export const BODY_LINE_PX = 20
 
 const raf: (cb: () => void) => number =
   typeof requestAnimationFrame === "function" ? (cb) => requestAnimationFrame(cb) : (cb) => setTimeout(cb, 16) as unknown as number
@@ -158,7 +153,6 @@ export const StickyCard = memo(function StickyCard({ idea, color, scale, disable
       aria-roledescription="draggable idea"
       aria-label={`${idea.category} idea: ${idea.body}`}
       aria-disabled={blocked || undefined}
-      title={idea.body}
       data-idea-id={idea.id}
       data-dragging={dragging || undefined}
       data-locked={locked || undefined}
@@ -178,7 +172,7 @@ export const StickyCard = memo(function StickyCard({ idea, color, scale, disable
       ].join(" ")}
       style={{
         width: CARD_W,
-        height: CARD_H,
+        height: cardHeight(idea.body),
         transform: `translate(${x}px, ${y}px)${dragging ? " rotate(-1.5deg)" : ""}`,
         borderColor: color ?? "var(--color-base-300)",
         borderWidth: color ? 3 : 1,
@@ -186,7 +180,8 @@ export const StickyCard = memo(function StickyCard({ idea, color, scale, disable
         touchAction: "none",
       }}
     >
-      <div className="mb-1 flex items-center gap-1 text-xs text-base-content/60">
+      {/* Chrome budget (CARD_CHROME 44 in constants.ts): 2x8 padding + 20 header + 2 margin + up to 2x3 border. */}
+      <div className="mb-0.5 flex h-5 shrink-0 items-center gap-1 text-xs text-base-content/60">
         <CategoryIcon category={idea.category} size="sm" labelled />
         <span className="truncate">{author?.given_name ?? ""}</span>
         {dragger && (
@@ -200,14 +195,10 @@ export const StickyCard = memo(function StickyCard({ idea, color, scale, disable
           </span>
         )}
       </div>
+      {/* The card is tall enough for the whole body; scrolling is only a safety net. */}
       <p
-        className="overflow-hidden break-words leading-snug"
-        style={{
-          fontSize: fontSizeFor(idea.body),
-          display: "-webkit-box",
-          WebkitBoxOrient: "vertical",
-          WebkitLineClamp: Math.floor((CARD_H - 36) / (fontSizeFor(idea.body) * 1.375)),
-        }}
+        className="min-h-0 flex-1 overflow-y-auto whitespace-pre-wrap break-words"
+        style={{ fontSize: BODY_FONT_PX, lineHeight: `${BODY_LINE_PX}px` }}
       >
         {idea.body}
       </p>

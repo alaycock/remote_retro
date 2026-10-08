@@ -22,6 +22,7 @@ describe("Voting", () => {
     expect(screen.getByRole("heading", { name: "Flaky CI" })).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: "Process" })).toBeInTheDocument()
     expect(screen.getByText("3 votes left")).toBeInTheDocument()
+    expect(screen.getAllByRole("article")).toHaveLength(2)
 
     await userEvent.click(screen.getByRole("button", { name: "Vote for Flaky CI" }))
     expect(push).toHaveBeenCalledWith("vote:create", { group_id: 10 })
@@ -45,5 +46,16 @@ describe("Voting", () => {
     renderWithStore(<Voting />, setup(snap([vote(1, 2, 10), vote(2, 2, 10)])))
     expect(screen.queryByText(/2 votes/)).not.toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Remove a vote from Flaky CI" })).toBeDisabled()
+  })
+
+  it("still shows the idea of a labelled group that's down to one idea", () => {
+    const s = snapshot({
+      retro: retro({ stage: "voting" }),
+      ideas: [idea({ id: 1, group_id: 10, body: "Flaky CI" })],
+      groups: [group(10, "CI")],
+    })
+    renderWithStore(<Voting />, setup(s))
+    expect(screen.getByRole("heading", { name: "CI" })).toBeInTheDocument()
+    expect(screen.getByText("Flaky CI")).toBeInTheDocument()
   })
 })

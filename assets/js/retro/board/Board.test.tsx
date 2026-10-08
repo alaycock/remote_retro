@@ -5,7 +5,8 @@ import { makeStore } from "../store"
 import { currentUserSet, groupUpserted, snapshotReceived } from "../store/slices"
 import type { Group, Idea, Snapshot } from "../types"
 import { Board } from "./Board"
-import { LABEL_DEBOUNCE_MS } from "./GroupLabel"
+import { cardHeight } from "../constants"
+import { LABEL_DEBOUNCE_MS, LABEL_MIN_PX, LABEL_WIDTH, labelWidth } from "./GroupLabel"
 
 const idea = (id: number, x: number | null, y: number | null, group_id: number | null, body = `idea ${id}`): Idea => ({
   id,
@@ -169,6 +170,59 @@ describe("Board drag", () => {
   })
 })
 
+describe("Board cards", () => {
+  it("renders the whole body at a constant size on a card as tall as cardHeight, with no tooltip", () => {
+    const body = "A long idea that goes on and on about flaky deploys,\nslow CI, and the review queue piling up every single sprint."
+    setup({ ideas: [idea(1, 0, 0, null, body), idea(2, 400, 0, null, "short")] })
+    const el = card("flaky deploys")
+    expect(el.style.width).toBe("200px")
+    expect(el.style.height).toBe(`${cardHeight(body)}px`)
+    expect(cardHeight(body)).toBeGreaterThan(120)
+    expect(card("short").style.height).toBe("120px")
+    expect(el).not.toHaveAttribute("title")
+    const text = el.querySelector("p")!
+    expect(text.textContent).toBe(body)
+    expect(text.style.fontSize).toBe("14px")
+    expect(text.style.lineHeight).toBe("20px")
+    expect(text.style.webkitLineClamp ?? "").toBe("")
+    expect(text.className).toContain("whitespace-pre-wrap")
+    expect(text.className).toContain("overflow-y-auto")
+  })
+})
+
+describe("labelWidth()", () => {
+  it("is the natural width when the group is wide enough on screen", () => {
+    expect(labelWidth(400, 1)).toBe(LABEL_WIDTH)
+  })
+
+  it("never exceeds the group's on-screen width at normal zoom", () => {
+    expect(labelWidth(200, 1)).toBe(200)
+    expect(labelWidth(200, 0.8)).toBeCloseTo(200)
+  })
+
+  it("caps the counter-scaled label to the group's width when zoomed out", () => {
+    // 0.6/0.4 counter-scale: 1 label unit = 0.6 screen px; group 300 wide = 120 px.
+    const w = labelWidth(300, 0.4)
+    expect(w * 0.6).toBeCloseTo(120)
+  })
+
+  it("keeps at least LABEL_MIN_PX, but within 64 world units past the group", () => {
+    // Group 200 wide at 50%: 100px on screen; min 80 doesn't apply.
+    expect(labelWidth(200, 0.5) * 0.6).toBeCloseTo(100)
+    // At 30%: group is 60px; min 80px fits within (200 + 64) * 0.3 = 79.2px -> 79.2.
+    expect(labelWidth(200, 0.3) * 0.6).toBeCloseTo(79.2)
+    // At 50% a tiny group gets the full minimum.
+    expect(labelWidth(100, 0.5) * 0.6).toBeCloseTo(LABEL_MIN_PX)
+  })
+
+  it("neighbouring 200-wide stacks 80 apart never get overlapping labels at any zoom", () => {
+    for (const scale of [0.1, 0.2, 0.24, 0.3, 0.45, 0.6, 1, 2]) {
+      const screenPerUnit = scale * Math.max(1, 0.6 / scale)
+      expect(labelWidth(200, scale) * screenPerUnit).toBeLessThanOrEqual(280 * scale + 1e-9)
+    }
+  })
+})
+
 describe("Board group labels", () => {
   const grouped = () => [idea(1, 0, 0, 7), idea(2, 50, 40, 7), idea(3, 900, 0, 8)]
 
@@ -213,6 +267,21 @@ describe("Board group labels", () => {
     fireEvent.change(input, { target: { value: "Quick" } })
     fireEvent.blur(input)
     expect(pushes("group:update")).toEqual([{ id: 7, label: "Quick" }])
+  })
+
+  it("caps the label to its group's width, truncating, and expands while focused", () => {
+    setup({
+      ideas: [idea(1, 0, 0, 7), idea(2, 0, 40, 7)],
+      groups: [group(7, "A very long label that will not fit", "user")],
+    })
+    const input = screen.getByLabelText("Label for group of 2 ideas: A very long label that will not fit")
+    const wrapper = input.closest("div")!
+    // The group is one card (200) wide at scale 1.
+    expect(wrapper.style.width).toBe("200px")
+    expect(input).toHaveAttribute("title", "A very long label that will not fit")
+    expect(input.className).toContain("truncate")
+    fireEvent.focus(input)
+    expect(wrapper.style.width).toBe(`${LABEL_WIDTH}px`)
   })
 
   it("shows the AI badge for AI labels", () => {

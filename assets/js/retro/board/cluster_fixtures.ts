@@ -1,5 +1,6 @@
-// Shared clustering fixtures. The Elixir tests for RemoteRetro.Grouping should
-// mirror these exact coordinates and expectations (CARD_W 200, CARD_H 120, buffer 8).
+// Shared clustering fixtures. test/remote_retro/grouping_parity_test.exs mirrors
+// these exact coordinates, bodies and expectations (CARD_W 200, height
+// cardHeight(body) with a 120 minimum, buffer 8). Update both together.
 import type { Positioned } from "./geometry"
 
 export interface ClusterFixture {
@@ -8,12 +9,18 @@ export interface ClusterFixture {
   expected: number[][]
 }
 
-const idea = (id: number, x: number | null, y: number | null, category: Positioned["category"] = "happy"): Positioned => ({
-  id,
-  x,
-  y,
-  category,
-})
+const idea = (
+  id: number,
+  x: number | null,
+  y: number | null,
+  category: Positioned["category"] = "happy",
+  body = `idea ${id}`,
+): Positioned => ({ id, x, y, category, body })
+
+/** 200 characters: 9 wrapped lines, cardHeight 224. */
+export const TALL = "x".repeat(200)
+/** Five paragraphs: cardHeight 144. */
+export const FIVE_LINES = "a\nb\nc\nd\ne"
 
 export const CLUSTER_FIXTURES: ClusterFixture[] = [
   {
@@ -80,5 +87,41 @@ export const CLUSTER_FIXTURES: ClusterFixture[] = [
     name: "two separate groups",
     ideas: [idea(1, 0, 0), idea(2, 50, 50), idea(3, 600, 0), idea(4, 650, 40), idea(5, 1200, 0)],
     expected: [[1, 2], [3, 4], [5]],
+  },
+  // Tall cards (heights 224 and 144) extend downwards from their top-left anchor.
+  {
+    name: "tall card reaches a card below only because of its height",
+    ideas: [idea(1, 0, 0, "happy", TALL), idea(2, 0, 200)],
+    expected: [[1, 2]],
+  },
+  {
+    name: "tall card overlapping by exactly 8 below stays apart",
+    ideas: [idea(1, 0, 0, "happy", TALL), idea(2, 0, 216)],
+    expected: [[1], [2]],
+  },
+  {
+    name: "tall card overlapping by 9 below groups",
+    ideas: [idea(1, 0, 0, "happy", TALL), idea(2, 0, 215)],
+    expected: [[1, 2]],
+  },
+  {
+    name: "multi-line body grows the card",
+    ideas: [idea(1, 0, 0, "happy", FIVE_LINES), idea(2, 50, 130)],
+    expected: [[1, 2]],
+  },
+  {
+    name: "tall card too far above does not reach",
+    ideas: [idea(1, 0, 0, "happy", TALL), idea(2, 0, 230)],
+    expected: [[1], [2]],
+  },
+  {
+    name: "a tall card's height does not extend upwards",
+    ideas: [idea(1, 0, 0), idea(2, 0, 115, "happy", TALL)],
+    expected: [[1], [2]],
+  },
+  {
+    name: "chain through a tall card",
+    ideas: [idea(1, 0, 0), idea(2, 150, 50, "happy", TALL), idea(3, 300, 250)],
+    expected: [[1, 2, 3]],
   },
 ]

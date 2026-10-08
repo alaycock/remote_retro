@@ -18,7 +18,7 @@ export function GroupCard({ group, footer, badge, compact = false }: GroupCardPr
   const titleId = `group-${group.id}-title`
 
   return (
-    <article aria-labelledby={titleId} className="card h-full bg-base-100 shadow-sm">
+    <article aria-labelledby={titleId} className="card bg-base-100 shadow-sm">
       <div className={`card-body gap-2 ${compact ? "p-3" : "p-4"}`}>
         <div className="flex items-start gap-2">
           {badge}
@@ -34,8 +34,9 @@ export function GroupCard({ group, footer, badge, compact = false }: GroupCardPr
             {title ?? "Unlabeled group"}
           </h3>
         </div>
-        {!singleton && (
-          <ul className="space-y-1 text-sm text-base-content/75">
+        {/* A labelled singleton (e.g. a group that lost all but one idea) still shows its idea. */}
+        {(!singleton || group.label) && (
+          <ul className={`text-base-content/75 ${compact ? "space-y-0.5 text-[0.8125rem] leading-snug" : "space-y-1 text-sm"}`}>
             {group.ideas.map((idea) => (
               <li key={idea.id} className="flex gap-1.5">
                 <CategoryIcon category={idea.category} size="sm" labelled />
@@ -44,7 +45,7 @@ export function GroupCard({ group, footer, badge, compact = false }: GroupCardPr
             ))}
           </ul>
         )}
-        {footer && <div className="mt-auto pt-1">{footer}</div>}
+        {footer && <div className={compact ? "pt-0.5" : "pt-1"}>{footer}</div>}
       </div>
     </article>
   )
