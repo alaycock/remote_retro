@@ -1,5 +1,6 @@
 import { useId, useState, type FormEvent, type KeyboardEvent } from "react"
 import { CATEGORY_META } from "../categories"
+import { CategoryIcon } from "./CategoryIcon"
 import { submitOnEnter } from "./keyboard"
 import { useThrottle } from "../hooks/useThrottle"
 import { useAppDispatch } from "../store/hooks"
@@ -23,7 +24,7 @@ export function IdeaForm({ categories, category, onCategoryChange }: IdeaFormPro
   const notifyTyping = useThrottle(() => dispatch(sendTyping()), TYPING_THROTTLE_MS)
   const bodyId = useId()
   const errorId = useId()
-  const categoryId = useId()
+  const categoryName = useId()
 
   const submit = async (e?: FormEvent) => {
     e?.preventDefault()
@@ -46,23 +47,34 @@ export function IdeaForm({ categories, category, onCategoryChange }: IdeaFormPro
     <form onSubmit={submit} noValidate className="card bg-base-100 shadow-sm" aria-label="Submit an idea">
       <div className="card-body gap-3 p-3 sm:p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-          <div className="sm:w-40">
-            <label htmlFor={categoryId} className="sr-only">
-              Category
-            </label>
-            <select
-              id={categoryId}
-              className="select w-full"
-              value={category}
-              onChange={(e) => onCategoryChange(e.target.value as Category)}
-            >
+          <fieldset className="sm:w-40 sm:shrink-0">
+            <legend className="sr-only">Category</legend>
+            {/* Native radios (arrow keys move between them) styled as stacked buttons;
+                a single row on narrow screens. */}
+            <div className="join w-full sm:join-vertical">
               {categories.map((c) => (
-                <option key={c} value={c}>
-                  {CATEGORY_META[c].emoji} {CATEGORY_META[c].label}
-                </option>
+                <label
+                  key={c}
+                  className={[
+                    "btn btn-sm join-item flex-1 justify-start gap-1.5 font-medium sm:w-full sm:flex-none",
+                    "has-[:checked]:z-10 has-[:checked]:border-primary has-[:checked]:bg-primary/10 has-[:checked]:text-primary",
+                    "has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary",
+                  ].join(" ")}
+                >
+                  <input
+                    type="radio"
+                    name={categoryName}
+                    value={c}
+                    checked={c === category}
+                    onChange={() => onCategoryChange(c)}
+                    className="sr-only"
+                  />
+                  <CategoryIcon category={c} size="sm" />
+                  {CATEGORY_META[c].label}
+                </label>
               ))}
-            </select>
-          </div>
+            </div>
+          </fieldset>
           <div className="flex-1">
             <label htmlFor={bodyId} className="sr-only">
               Idea

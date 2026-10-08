@@ -32,7 +32,7 @@ describe("IdeaForm (idea generation)", () => {
       Promise.resolve(event === "idea:create" ? { idea: idea({ id: 7, ...(payload as object) }) } : {}),
     )
     renderWithStore(<IdeaGeneration />, setup(snapshot(), { channel }))
-    await userEvent.selectOptions(screen.getByLabelText("Category"), "sad")
+    await userEvent.click(screen.getByRole("radio", { name: /sad/i }))
     await userEvent.type(screen.getByLabelText("Idea"), "  Too many meetings  {Enter}")
     expect(push).toHaveBeenCalledWith("idea:create", { category: "sad", body: "Too many meetings" })
     expect(screen.getByLabelText("Idea")).toHaveValue("")
