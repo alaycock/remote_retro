@@ -103,3 +103,19 @@
 [data-phx-session], [data-phx-teleported-src] { display: contents }
 
 /* This file is for your main application CSS */
+
+/* Respect "reduce motion": state changes (modals opening, colours, pills) happen instantly
+   instead of sliding/zooming. Loading spinners keep spinning so progress stays visible.
+   Nothing changes for anyone without the preference. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .modal,
+  .modal-box {
+    animation: none !important;
+  }
+}

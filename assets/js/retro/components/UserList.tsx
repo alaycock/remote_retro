@@ -84,6 +84,8 @@ function UserRow({ user, online, onHandOff }: { user: User; online: boolean; onH
         <p className={`truncate text-sm leading-tight ${online ? "" : "text-base-content/60"}`}>
           {user.name}
           {user.id === currentUserId && <span className="text-base-content/50"> (you)</span>}
+          {/* The green dot / dimming is visual only. */}
+          <span className="sr-only">{online ? ", online" : ", offline"}</span>
         </p>
         <p className="flex items-center gap-1 text-xs text-base-content/60">
           {facilitator && <span className="badge badge-xs badge-primary">Facilitator</span>}

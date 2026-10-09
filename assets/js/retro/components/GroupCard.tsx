@@ -9,10 +9,13 @@ interface GroupCardProps {
   /** Rendered next to the title (e.g. rank). */
   badge?: ReactNode
   compact?: boolean
+  /** Heading level for the title, to follow the page outline (styling doesn't change). */
+  headingLevel?: 2 | 3
 }
 
 /** A group of ideas; singletons show the lone idea's text as the title. */
-export function GroupCard({ group, footer, badge, compact = false }: GroupCardProps) {
+export function GroupCard({ group, footer, badge, compact = false, headingLevel = 3 }: GroupCardProps) {
+  const Heading = headingLevel === 2 ? "h2" : "h3"
   const title = groupTitle(group)
   const singleton = group.ideas.length === 1
   const titleId = `group-${group.id}-title`
@@ -22,7 +25,7 @@ export function GroupCard({ group, footer, badge, compact = false }: GroupCardPr
       <div className={`card-body gap-2 ${compact ? "p-3" : "p-4"}`}>
         <div className="flex items-start gap-2">
           {badge}
-          <h3
+          <Heading
             id={titleId}
             className={`min-w-0 flex-1 break-words ${singleton && !group.label ? "text-sm" : "font-semibold"} ${title ? "" : "text-base-content/50 italic"}`}
           >
@@ -32,7 +35,7 @@ export function GroupCard({ group, footer, badge, compact = false }: GroupCardPr
               </span>
             )}
             {title ?? "Unlabeled group"}
-          </h3>
+          </Heading>
         </div>
         {/* A labelled singleton (e.g. a group that lost all but one idea) still shows its idea. */}
         {(!singleton || group.label) && (
