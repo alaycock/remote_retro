@@ -97,22 +97,52 @@ export const presenceSlice = createSlice({
 export interface TimerSliceState extends TimerState {
   /** performance.now() when this state arrived; a running timer counts down from here. */
   receivedAt: number
+  /**
+   * This client's timer commands awaiting a reply. While any are out, server timer states are
+   * stale (they predate the latest click), so only the reply to the last one is applied.
+   */
+  inFlight: number
 }
+
+const received = (timer: TimerState, receivedAt = performance.now()): TimerSliceState => ({
+  ...timer,
+  receivedAt,
+  inFlight: 0,
+})
 
 export const timerSlice = createSlice({
   name: "timer",
   initialState: null as TimerSliceState | null,
   reducers: {
+    /** A server broadcast. Ignored while our own commands are in flight. */
     timerUpdated: {
-      reducer: (_state, action: PayloadAction<TimerSliceState>) => action.payload,
-      prepare: (timer: TimerState) => ({ payload: { ...timer, receivedAt: performance.now() } }),
+      reducer: (state, action: PayloadAction<TimerSliceState>) =>
+        state && state.inFlight > 0 ? state : action.payload,
+      prepare: (timer: TimerState) => ({ payload: received(timer) }),
     },
-    /** Puts back an earlier state as-is (keeping its `receivedAt`), e.g. after a failed push. */
-    timerRestored: (_state, action: PayloadAction<TimerSliceState>) => action.payload,
+    /** An optimistic state for a command just sent. */
+    timerCommandSent: {
+      reducer: (state, action: PayloadAction<TimerSliceState>) => ({
+        ...action.payload,
+        inFlight: (state?.inFlight ?? 0) + 1,
+      }),
+      prepare: (timer: TimerState) => ({ payload: received(timer) }),
+    },
+    /**
+     * A command finished. `timer` is the server's state (from the reply, or sent back with an
+     * error) or, if the server never answered, the state from before the command. It's applied
+     * only when this was the last command in flight.
+     */
+    timerCommandSettled: (state, action: PayloadAction<TimerSliceState | null>) => {
+      if (!state) return state
+      const inFlight = Math.max(0, state.inFlight - 1)
+      if (inFlight > 0 || !action.payload) return { ...state, inFlight }
+      return { ...action.payload, inFlight: 0 }
+    },
   },
   extraReducers: (builder) =>
     builder.addMatcher(isSnapshot, (_state, action) =>
-      action.payload.timer ? { ...action.payload.timer, receivedAt: action.meta.receivedAt } : null,
+      action.payload.timer ? received(action.payload.timer, action.meta.receivedAt) : null,
     ),
 })
 
@@ -157,5 +187,5 @@ export const { groupUpserted, groupsReplaced } = groupsSlice.actions
 export const { voteAdded, voteRemoved } = votesSlice.actions
 export const { userUpserted } = usersSlice.actions
 export const { presenceSynced, userTyping } = presenceSlice.actions
-export const { timerUpdated, timerRestored } = timerSlice.actions
+export const { timerUpdated, timerCommandSent, timerCommandSettled } = timerSlice.actions
 export const { currentUserSet, devToolsEnabled, connectedChanged, toastShown, toastDismissed } = uiSlice.actions

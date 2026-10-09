@@ -164,4 +164,35 @@ describe("StageTimer", () => {
       expect(screen.getByRole("button", { name: "Pause timer" })).toBeInTheDocument()
     })
   })
+
+  it("doesn't flash back to idle when the duration's reply lands after pressing play", async () => {
+    // Each push waits until the test answers it, like a slow server.
+    const replies: ((value: unknown) => void)[] = []
+    const { channel, push } = mockChannel(() => new Promise((resolve) => replies.push(resolve)))
+    const store = room({ push: channel })
+
+    const less = screen.getByRole("button", { name: "One minute less" })
+    fireEvent.click(less)
+    fireEvent.click(less)
+    act(() => fireEvent.click(screen.getByRole("button", { name: "Start timer" })))
+    expect(push.mock.calls.map(([, payload]) => payload)).toEqual([
+      { command: "set_minutes", minutes: 1 },
+      { command: "start" },
+    ])
+    expect(screen.getByRole("timer")).toHaveAccessibleName("Timer: 01:00 left")
+
+    // The server's broadcast and reply for the duration both predate the start: ignored.
+    const idleOneMinute = { status: "idle", duration_ms: 60_000, remaining_ms: 60_000 }
+    act(() => store.dispatch(timerUpdated(idleOneMinute as TimerState)))
+    await act(async () => replies[0]({ timer: idleOneMinute }))
+    expect(screen.getByRole("timer")).toHaveAccessibleName("Timer: 01:00 left")
+    expect(screen.getByRole("button", { name: "Pause timer" })).toBeInTheDocument()
+
+    await act(async () => replies[1]({ timer: { status: "running", duration_ms: 60_000, remaining_ms: 59_900 } }))
+    expect(screen.getByRole("timer")).toHaveAccessibleName("Timer: 01:00 left")
+
+    // Once nothing is in flight, broadcasts apply again.
+    act(() => store.dispatch(timerUpdated({ status: "paused", duration_ms: 60_000, remaining_ms: 30_000 })))
+    expect(screen.getByRole("timer")).toHaveAccessibleName("Timer: 00:30 left, paused")
+  })
 })

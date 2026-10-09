@@ -10,8 +10,8 @@ import {
   ideaRemoved,
   retroUpdated,
   ideaUpserted,
-  timerRestored,
-  timerUpdated,
+  timerCommandSent,
+  timerCommandSettled,
   toastShown,
   voteAdded,
   voteRemoved,
@@ -280,21 +280,22 @@ export function predictTimer(timer: TimerSliceState, command: TimerCommand, now:
 
 /**
  * Applies the command optimistically, then takes the server's state: its reply on success, or the
- * current timer it sends back with an error. If the push never got an answer, the view reverts.
+ * current timer it sends back with an error; if the push never got an answer, the view reverts.
+ * Rapid clicks don't flicker: only the last outstanding command's result is applied.
  */
 export const commandTimer = createAppAsyncThunk(
   "timer/command",
   async (command: TimerCommand, { dispatch, getState, extra, rejectWithValue }) => {
     const before = getState().timer
-    if (before) dispatch(timerUpdated(predictTimer(before, command, performance.now())))
+    if (before) dispatch(timerCommandSent(predictTimer(before, command, performance.now())))
+    const settle = (timer: TimerSliceState | null) => before && dispatch(timerCommandSettled(timer))
     try {
       const { timer } = await extra.channel.push<"timer:command", { timer: TimerState }>("timer:command", command)
-      dispatch(timerUpdated(timer))
+      settle({ ...timer, receivedAt: performance.now(), inFlight: 0 })
       return timer
     } catch (error) {
       const serverTimer = error instanceof PushError ? (error.details.timer as TimerState | undefined) : undefined
-      if (serverTimer) dispatch(timerUpdated(serverTimer))
-      else if (before) dispatch(timerRestored(before))
+      settle(serverTimer ? { ...serverTimer, receivedAt: performance.now(), inFlight: 0 } : { ...before!, inFlight: 0 })
       return rejectWithValue(report(dispatch, error, "Couldn't update the timer."))
     }
   },
