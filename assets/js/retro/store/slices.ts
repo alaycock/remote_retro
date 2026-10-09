@@ -1,7 +1,10 @@
 import { createEntityAdapter, createSlice, type PayloadAction } from "@reduxjs/toolkit"
-import type { Group, Idea, IdeaPosition, PresenceState, Retro, Snapshot, User, Vote } from "../types"
+import type { Group, Idea, IdeaPosition, PresenceState, Retro, Snapshot, TimerState, User, Vote } from "../types"
 
-export const snapshotReceived = (snapshot: Snapshot) => ({ type: "snapshot/received", payload: snapshot }) as const
+// `receivedAt` (performance.now()) lets the timer count down from the moment the server's
+// `remaining_ms` arrived, on this client's own clock.
+export const snapshotReceived = (snapshot: Snapshot) =>
+  ({ type: "snapshot/received", payload: snapshot, meta: { receivedAt: performance.now() } }) as const
 const isSnapshot = (action: { type: string }): action is ReturnType<typeof snapshotReceived> =>
   action.type === "snapshot/received"
 
@@ -91,6 +94,58 @@ export const presenceSlice = createSlice({
   },
 })
 
+export interface TimerSliceState extends TimerState {
+  /** performance.now() when this state arrived; a running timer counts down from here. */
+  receivedAt: number
+  /**
+   * This client's timer commands awaiting a reply. While any are out, server timer states are
+   * stale (they predate the latest click), so only the reply to the last one is applied.
+   */
+  inFlight: number
+}
+
+const received = (timer: TimerState, receivedAt = performance.now()): TimerSliceState => ({
+  ...timer,
+  receivedAt,
+  inFlight: 0,
+})
+
+export const timerSlice = createSlice({
+  name: "timer",
+  initialState: null as TimerSliceState | null,
+  reducers: {
+    /** A server broadcast. Ignored while our own commands are in flight. */
+    timerUpdated: {
+      reducer: (state, action: PayloadAction<TimerSliceState>) =>
+        state && state.inFlight > 0 ? state : action.payload,
+      prepare: (timer: TimerState) => ({ payload: received(timer) }),
+    },
+    /** An optimistic state for a command just sent. */
+    timerCommandSent: {
+      reducer: (state, action: PayloadAction<TimerSliceState>) => ({
+        ...action.payload,
+        inFlight: (state?.inFlight ?? 0) + 1,
+      }),
+      prepare: (timer: TimerState) => ({ payload: received(timer) }),
+    },
+    /**
+     * A command finished. `timer` is the server's state (from the reply, or sent back with an
+     * error) or, if the server never answered, the state from before the command. It's applied
+     * only when this was the last command in flight.
+     */
+    timerCommandSettled: (state, action: PayloadAction<TimerSliceState | null>) => {
+      if (!state) return state
+      const inFlight = Math.max(0, state.inFlight - 1)
+      if (inFlight > 0 || !action.payload) return { ...state, inFlight }
+      return { ...action.payload, inFlight: 0 }
+    },
+  },
+  extraReducers: (builder) =>
+    builder.addMatcher(isSnapshot, (_state, action) =>
+      action.payload.timer ? received(action.payload.timer, action.meta.receivedAt) : null,
+    ),
+})
+
 export interface Toast {
   id: number
   kind: "error" | "info"
@@ -132,4 +187,5 @@ export const { groupUpserted, groupsReplaced } = groupsSlice.actions
 export const { voteAdded, voteRemoved } = votesSlice.actions
 export const { userUpserted } = usersSlice.actions
 export const { presenceSynced, userTyping } = presenceSlice.actions
+export const { timerUpdated, timerCommandSent, timerCommandSettled } = timerSlice.actions
 export const { currentUserSet, devToolsEnabled, connectedChanged, toastShown, toastDismissed } = uiSlice.actions

@@ -2,7 +2,7 @@ defmodule RemoteRetro.Retros do
   @moduledoc "Retros, participation and the full-state snapshot sent to clients."
   require Logger
   import Ecto.Query
-  alias RemoteRetro.{AI, Broadcast, Emails, Formats, Groups, Layout, Mailer, Repo, Stages}
+  alias RemoteRetro.{AI, Broadcast, Emails, Formats, Groups, Layout, Mailer, Repo, Stages, Timer}
   alias RemoteRetro.Retros.{Retro, Participation}
   alias RemoteRetro.Accounts.User
   alias RemoteRetro.Ideas.Idea
@@ -127,7 +127,26 @@ defmodule RemoteRetro.Retros do
     do: if(facilitator?(retro, user_id), do: :ok, else: {:error, :forbidden})
 
   @doc """
+  Facilitator-only: runs a `RemoteRetro.Timer` command (`:start`, `:pause`, `:reset`,
+  `{:set_minutes, n}`) in a timed stage. Returns `{:ok, timer_view}`.
+  """
+  def timer_command(%Retro{id: retro_id}, actor_id, command) do
+    Repo.transact(fn ->
+      retro = lock_retro!(retro_id)
+      now = DateTime.utc_now()
+
+      with :ok <- ensure_facilitator(retro, actor_id),
+           :ok <- if(Timer.timed_stage?(retro.stage), do: :ok, else: {:error, :invalid_stage}),
+           {:ok, attrs} <- Timer.command(command, retro, now),
+           {:ok, updated} <- update_retro(retro, attrs) do
+        {:ok, Timer.view(updated, now)}
+      end
+    end)
+  end
+
+  @doc """
   Moves the retro one stage forward or back on behalf of the facilitator.
+  Every move resets the stage timer (`RemoteRetro.Timer`) to idle.
 
   Entering `grouping` lays out unpositioned ideas and syncs groups; moving
   forward from `grouping` to `voting` syncs groups once more. After commit,
@@ -148,7 +167,7 @@ defmodule RemoteRetro.Retros do
         with :ok <- ensure_facilitator(retro, actor_id),
              :ok <- ensure_ai_idle(retro),
              :ok <- ensure_adjacent(retro.stage, to_stage),
-             {:ok, updated} <- update_retro(retro, %{stage: to_stage}),
+             {:ok, updated} <- update_retro(retro, Map.put(Timer.reset_attrs(), :stage, to_stage)),
              :ok <- enter_stage(retro.stage, updated) do
           {:ok, {retro.stage, updated}}
         end
@@ -349,6 +368,7 @@ defmodule RemoteRetro.Retros do
       retro: retro,
       # Lets clients hide AI-only controls (e.g. re-run grouping) when AI isn't configured.
       ai_enabled: AI.enabled?(),
+      timer: Timer.view(retro),
       users: list_participants(retro_id),
       ideas: Repo.all(from i in Idea, where: i.retro_id == ^retro_id, order_by: i.id),
       groups: Repo.all(from g in Group, where: g.retro_id == ^retro_id, order_by: g.id),

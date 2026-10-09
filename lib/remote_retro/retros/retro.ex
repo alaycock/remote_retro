@@ -15,6 +15,9 @@ defmodule RemoteRetro.Retros.Retro do
     field :ai_grouped_at, :utc_datetime_usec
     field :ai_regroups, :integer, default: 0
     field :action_items_emailed_digest, :string
+    field :timer_duration_ms, :integer, default: 180_000
+    field :timer_ends_at, :utc_datetime_usec
+    field :timer_remaining_ms, :integer
     belongs_to :facilitator, RemoteRetro.Accounts.User
     has_many :participations, RemoteRetro.Retros.Participation
     has_many :ideas, RemoteRetro.Ideas.Idea
@@ -31,11 +34,21 @@ defmodule RemoteRetro.Retros.Retro do
 
   def changeset(retro, attrs) do
     retro
-    |> cast(attrs, [:stage, :facilitator_id, :ai_status, :ai_grouped_at])
+    |> cast(attrs, [
+      :stage,
+      :facilitator_id,
+      :ai_status,
+      :ai_grouped_at,
+      :timer_duration_ms,
+      :timer_ends_at,
+      :timer_remaining_ms
+    ])
     |> validate_required([:stage])
     |> validate_change(:stage, fn :stage, s ->
       if Stages.valid?(s), do: [], else: [stage: "is invalid"]
     end)
     |> validate_inclusion(:ai_status, @ai_statuses)
+    |> validate_number(:timer_duration_ms, greater_than: 0)
+    |> validate_number(:timer_remaining_ms, greater_than_or_equal_to: 0)
   end
 end

@@ -155,6 +155,20 @@ defmodule RemoteRetroWeb.RetroChannel do
     end
   end
 
+  def handle_in("timer:command", %{"command" => command} = params, socket) do
+    with {:ok, command} <- timer_command(command, params),
+         {:ok, timer} <- Retros.timer_command(retro(socket), user_id(socket), command) do
+      broadcast!(socket, "timer:updated", %{timer: timer})
+      Reply.ok(socket, %{timer: timer})
+    else
+      error ->
+        # Clients update optimistically; the current timer lets them snap back to the truth.
+        {:reply, {:error, payload}, socket} = Reply.error(socket, error)
+        timer = RemoteRetro.Timer.view(retro(socket))
+        {:reply, {:error, Map.put(payload, :timer, timer)}, socket}
+    end
+  end
+
   def handle_in("ai:regroup", _params, socket) do
     case Retros.regroup(retro(socket), user_id(socket)) do
       {:ok, status} -> Reply.ok(socket, %{status: Atom.to_string(status)})
@@ -188,4 +202,13 @@ defmodule RemoteRetroWeb.RetroChannel do
   defp user_id(socket), do: socket.assigns.user.id
 
   defp take(params, keys), do: Map.take(params, keys)
+
+  defp timer_command("start", _params), do: {:ok, :start}
+  defp timer_command("pause", _params), do: {:ok, :pause}
+  defp timer_command("reset", _params), do: {:ok, :reset}
+
+  defp timer_command("set_minutes", %{"minutes" => minutes}) when is_integer(minutes),
+    do: {:ok, {:set_minutes, minutes}}
+
+  defp timer_command(_command, _params), do: {:error, :invalid}
 end

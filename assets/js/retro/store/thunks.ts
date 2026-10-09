@@ -1,10 +1,21 @@
 import { PushError } from "../channel"
 import { VOTE_LIMIT } from "../constants"
-import type { Category, Group, Idea, Retro, Stage, Vote } from "../types"
+import type { Category, Group, Idea, Retro, Stage, TimerCommand, TimerState, Vote } from "../types"
 import { createAppAsyncThunk } from "./hooks"
 import type { AppDispatch } from "./index"
 import { selectMyVotesLeft } from "./selectors"
-import { groupUpserted, ideaRemoved, retroUpdated, ideaUpserted, toastShown, voteAdded, voteRemoved } from "./slices"
+import type { TimerSliceState } from "./slices"
+import {
+  groupUpserted,
+  ideaRemoved,
+  retroUpdated,
+  ideaUpserted,
+  timerCommandSent,
+  timerCommandSettled,
+  toastShown,
+  voteAdded,
+  voteRemoved,
+} from "./slices"
 
 const REASON_MESSAGES: Record<string, string> = {
   not_found: "It no longer exists.",
@@ -13,6 +24,7 @@ const REASON_MESSAGES: Record<string, string> = {
   ai_busy: "Ideas are still being grouped. Try again in a moment.",
   ai_disabled: "AI grouping isn't set up on this server.",
   regroup_limit: "Grouping can only be re-run twice per retro.",
+  timer_changed: "The timer changed. Try again.",
   vote_limit: `You've already used all ${VOTE_LIMIT} votes.`,
   invalid: "Please check what you entered and try again.",
   unknown: "Something went wrong. Please try again.",
@@ -245,3 +257,46 @@ export const regroupIdeas = createAppAsyncThunk("ai/regroup", async (_: void, { 
     return rejectWithValue(report(dispatch, error, "Couldn't re-run grouping."))
   }
 })
+
+/** What a timer command will do, so the view can change before the server confirms it. */
+export function predictTimer(timer: TimerSliceState, command: TimerCommand, now: number): TimerState {
+  const remaining =
+    timer.status === "running" ? Math.max(0, timer.remaining_ms - (now - timer.receivedAt)) : timer.remaining_ms
+  switch (command.command) {
+    case "start":
+      return {
+        ...timer,
+        status: "running",
+        remaining_ms: timer.status === "paused" ? timer.remaining_ms : timer.duration_ms,
+      }
+    case "pause":
+      return { ...timer, status: "paused", remaining_ms: remaining }
+    case "reset":
+      return { ...timer, status: "idle", remaining_ms: timer.duration_ms }
+    case "set_minutes":
+      return { ...timer, duration_ms: command.minutes * 60_000, remaining_ms: command.minutes * 60_000 }
+  }
+}
+
+/**
+ * Applies the command optimistically, then takes the server's state: its reply on success, or the
+ * current timer it sends back with an error; if the push never got an answer, the view reverts.
+ * Rapid clicks don't flicker: only the last outstanding command's result is applied.
+ */
+export const commandTimer = createAppAsyncThunk(
+  "timer/command",
+  async (command: TimerCommand, { dispatch, getState, extra, rejectWithValue }) => {
+    const before = getState().timer
+    if (before) dispatch(timerCommandSent(predictTimer(before, command, performance.now())))
+    const settle = (timer: TimerSliceState | null) => before && dispatch(timerCommandSettled(timer))
+    try {
+      const { timer } = await extra.channel.push<"timer:command", { timer: TimerState }>("timer:command", command)
+      settle({ ...timer, receivedAt: performance.now(), inFlight: 0 })
+      return timer
+    } catch (error) {
+      const serverTimer = error instanceof PushError ? (error.details.timer as TimerState | undefined) : undefined
+      settle(serverTimer ? { ...serverTimer, receivedAt: performance.now(), inFlight: 0 } : { ...before!, inFlight: 0 })
+      return rejectWithValue(report(dispatch, error, "Couldn't update the timer."))
+    }
+  },
+)

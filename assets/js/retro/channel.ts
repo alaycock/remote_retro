@@ -2,7 +2,11 @@ import { Socket, Channel } from "phoenix"
 import type { BroadcastEvents, PushEvents, Snapshot } from "./types"
 
 export class PushError extends Error {
-  constructor(public reason: string) {
+  /** `details`: anything else the server put in the error reply (e.g. the current timer). */
+  constructor(
+    public reason: string,
+    public details: Record<string, unknown> = {},
+  ) {
     super(reason)
   }
 }
@@ -77,7 +81,7 @@ export class RetroChannel {
       this.channel
         .push(event, payload)
         .receive("ok", (reply: R) => resolve(reply))
-        .receive("error", ({ reason }: { reason: string }) => reject(new PushError(reason)))
+        .receive("error", ({ reason, ...details }: { reason: string }) => reject(new PushError(reason, details)))
         .receive("timeout", () => reject(new PushError("timeout")))
     })
   }

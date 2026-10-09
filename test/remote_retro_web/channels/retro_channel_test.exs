@@ -340,4 +340,80 @@ defmodule RemoteRetroWeb.RetroChannelTest do
       assert_reply push(socket, "bogus", %{}), :error, %{reason: "invalid"}
     end
   end
+
+  describe "timer" do
+    test "the facilitator runs it and everyone gets the new state", %{facilitator: f} do
+      retro = retro_fixture(f, %{stage: "idea-generation"})
+      socket = room(f, retro)
+
+      assert_reply push(socket, "timer:command", %{"command" => "set_minutes", "minutes" => 4}),
+                   :ok,
+                   %{timer: %{status: "idle", duration_ms: 240_000}}
+
+      assert_reply push(socket, "timer:command", %{"command" => "start"}), :ok, %{
+        timer: %{status: "running"}
+      }
+
+      assert_broadcast "timer:updated", %{timer: %{status: "running"}}
+
+      assert_reply push(socket, "timer:command", %{"command" => "pause"}), :ok, %{
+        timer: %{status: "paused", remaining_ms: remaining}
+      }
+
+      assert remaining in 230_000..240_000
+
+      assert_reply push(socket, "timer:command", %{"command" => "reset"}), :ok, %{
+        timer: %{status: "idle", remaining_ms: 240_000}
+      }
+    end
+
+    test "only the facilitator, only in timed stages, only known commands", %{
+      facilitator: f,
+      guest: g
+    } do
+      retro = retro_fixture(f, %{stage: "voting"})
+
+      assert_reply push(room(g, retro), "timer:command", %{"command" => "start"}), :error, %{
+        reason: "forbidden"
+      }
+
+      socket = room(f, retro)
+
+      assert_reply push(socket, "timer:command", %{"command" => "explode"}), :error, %{
+        reason: "invalid"
+      }
+
+      assert_reply push(socket, "timer:command", %{"command" => "set_minutes", "minutes" => "4"}),
+                   :error,
+                   %{reason: "invalid"}
+
+      assert_reply push(socket, "timer:command", %{"command" => "pause"}), :error, %{
+        reason: "timer_changed",
+        timer: %{status: "idle"}
+      }
+
+      Repo.update!(Ecto.Changeset.change(retro, stage: "action-items"))
+
+      assert_reply push(socket, "timer:command", %{"command" => "start"}), :error, %{
+        reason: "invalid_stage"
+      }
+    end
+
+    test "changing stage resets it, and the snapshot carries it", %{facilitator: f} do
+      retro = retro_fixture(f, %{stage: "idea-generation"})
+      socket = room(f, retro)
+
+      assert_reply push(socket, "timer:command", %{"command" => "set_minutes", "minutes" => 5}),
+                   :ok,
+                   _
+
+      assert_reply push(socket, "timer:command", %{"command" => "start"}), :ok, _
+
+      assert {:ok, _} = Retros.change_stage(retro, "prime-directive", f.id)
+
+      assert_broadcast "snapshot", %{
+        timer: %{status: "idle", duration_ms: 180_000, remaining_ms: 180_000}
+      }
+    end
+  end
 end

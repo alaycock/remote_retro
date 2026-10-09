@@ -2,6 +2,7 @@ import { useAppSelector } from "../store/hooks"
 import { selectPresentUsers, selectStage } from "../store/selectors"
 import { StageControls } from "./StageControls"
 import { StageStepper } from "./StageStepper"
+import { StageTimer } from "./StageTimer"
 import { ThemeToggle } from "./ThemeToggle"
 import { AvatarStack } from "./UserList"
 
@@ -26,6 +27,7 @@ export function Header({ onShowHelp, onShowParticipants }: HeaderProps) {
       <div className="min-w-0 flex-1">{stage && <StageStepper stage={stage} />}</div>
 
       <div className="flex items-center gap-1">
+        <StageTimer />
         {onShowHelp && (
           <button
             type="button"
