@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# Copy the production (and staging) database from the old project's Cloud SQL instance into
-# the new one, replacing what's there. Run after deploy/bootstrap.sh, ideally while nobody is
-# in a retro (anything written to the old app after the copy stays behind).
+# One-off (see deploy/org-move/README.md): copy the production (and staging) database from
+# the old project's Cloud SQL instance into the new one, replacing what's there. Run after
+# deploy/org-move/bootstrap.sh, ideally while nobody is in a retro (anything written to the
+# old app after the copy stays behind).
 #
-#   FROM_PROJECT=hb-remote-retro PROJECT=new-project-id deploy/migrate-data.sh
+#   FROM_PROJECT=hb-remote-retro PROJECT=new-project-id deploy/org-move/migrate-data.sh
 #   SKIP_STAGING=1 …   # production only
 #   YES=1 …            # don't ask for confirmation
 #
@@ -11,7 +12,7 @@
 # ~/.config/gcloud-remote-retro (used by the Cloud SQL proxies) for an account with Cloud SQL
 # Client + Secret Manager access on BOTH projects. Instance names/region come from config.sh.
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 # shellcheck source=deploy/config.sh
 source deploy/config.sh
 : "${FROM_PROJECT:?set FROM_PROJECT to the old project id}"

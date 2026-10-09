@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# Recreate Remote Retro's whole GCP setup in a new project, e.g. when moving to another
-# organization. Resumable: re-run it until it prints "All set"; every step skips what exists.
+# One-off (see deploy/org-move/README.md): recreate Remote Retro's whole GCP setup in a new
+# project, e.g. when moving to another organization. Resumable: re-run it until it prints "All set"; every step skips what exists.
 #
-#   PROJECT=new-project-id ORG_ID=123456789 BILLING_ACCOUNT=XXXXXX-XXXXXX-XXXXXX deploy/bootstrap.sh
+#   PROJECT=new-project-id ORG_ID=123456789 BILLING_ACCOUNT=XXXXXX-XXXXXX-XXXXXX deploy/org-move/bootstrap.sh
 #     (FOLDER_ID=… instead of ORG_ID to create the project in a folder; both are only
 #      needed if the project doesn't exist yet. BILLING_ACCOUNT only if billing isn't linked.)
-#   CHECK=1 deploy/bootstrap.sh     # read-only: report what exists, change nothing
+#   CHECK=1 deploy/org-move/bootstrap.sh     # read-only: report what exists, change nothing
 #
-# Then copy the data across with deploy/migrate-data.sh, and set PROJECT in deploy/config.sh.
+# Then copy the data across with deploy/org-move/migrate-data.sh, and set PROJECT in deploy/config.sh.
 # Run from the host (needs Docker; gh for the GitHub step). gcloud runs via deploy/run.sh.
 set -euo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 # shellcheck source=deploy/config.sh
 source deploy/config.sh
 
@@ -148,7 +148,7 @@ esac
 step "All set"
 note "App:  https://$HOST"
 note "Next:"
-note "  1. Copy the data:   FROM_PROJECT=<old-project> PROJECT=$PROJECT deploy/migrate-data.sh"
+note "  1. Copy the data:   FROM_PROJECT=<old-project> PROJECT=$PROJECT deploy/org-move/migrate-data.sh"
 note "  2. Make it the default: set PROJECT=\"\${PROJECT:-$PROJECT}\" in deploy/config.sh and commit"
 note "     (docker-dev: cd docker-dev && docker compose up -d --force-recreate app staging-db)"
 note "  3. Push to master to check the GitHub deploy, then shut down the old project when you're happy"

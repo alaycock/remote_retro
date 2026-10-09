@@ -1,6 +1,6 @@
 # shellcheck shell=bash disable=SC2034
-# Shared settings for every deploy script. To move to another project (or org), change
-# PROJECT here, or override it per run: `PROJECT=my-new-project deploy/bootstrap.sh`.
+# Shared settings for every deploy script. To point them at another project, change PROJECT
+# here, or override it per run: `deploy/run.sh env PROJECT=other ./deploy/deploy.sh`.
 # Sourced by the scripts; not meant to be run.
 PROJECT="${PROJECT:-hb-remote-retro}"
 REGION="${REGION:-us-central1}"

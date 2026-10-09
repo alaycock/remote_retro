@@ -13,8 +13,8 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # Where to deploy comes from repository variables (Settings → Secrets and variables → Actions →
-# Variables), set by deploy/bootstrap.sh from deploy/setup-github.sh's output. Moving to another
-# GCP project only means updating those variables.
+# Variables), from deploy/setup-github.sh's output. Pointing at another GCP project only means
+# updating those variables.
 env:
   PROJECT: ${{ vars.GCP_PROJECT }}
   REGION: ${{ vars.GCP_REGION }}

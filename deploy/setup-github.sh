@@ -44,7 +44,7 @@ gcloud iam service-accounts add-iam-policy-binding "$DEPLOYER_SA" --role=roles/i
   >/dev/null
 
 echo "==> Done. GitHub repository variables for .github/workflows/deploy.yml"
-echo "    (deploy/bootstrap.sh sets these with gh; or Settings → Secrets and variables → Actions → Variables):"
+echo "    (Settings → Secrets and variables → Actions → Variables, or: gh variable set NAME --body VALUE):"
 echo "GCP_PROJECT=$PROJECT"
 echo "GCP_REGION=$REGION"
 echo "GCP_WIF_PROVIDER=projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/$POOL/providers/$PROVIDER"
