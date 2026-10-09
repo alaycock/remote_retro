@@ -346,9 +346,9 @@ defmodule RemoteRetroWeb.RetroChannelTest do
       retro = retro_fixture(f, %{stage: "idea-generation"})
       socket = room(f, retro)
 
-      assert_reply push(socket, "timer:command", %{"command" => "add_minute"}), :ok, %{
-        timer: %{status: "idle", duration_ms: 240_000}
-      }
+      assert_reply push(socket, "timer:command", %{"command" => "set_minutes", "minutes" => 4}),
+                   :ok,
+                   %{timer: %{status: "idle", duration_ms: 240_000}}
 
       assert_reply push(socket, "timer:command", %{"command" => "start"}), :ok, %{
         timer: %{status: "running"}
@@ -383,6 +383,10 @@ defmodule RemoteRetroWeb.RetroChannelTest do
         reason: "invalid"
       }
 
+      assert_reply push(socket, "timer:command", %{"command" => "set_minutes", "minutes" => "4"}),
+                   :error,
+                   %{reason: "invalid"}
+
       assert_reply push(socket, "timer:command", %{"command" => "pause"}), :error, %{
         reason: "timer_changed"
       }
@@ -397,7 +401,11 @@ defmodule RemoteRetroWeb.RetroChannelTest do
     test "changing stage resets it, and the snapshot carries it", %{facilitator: f} do
       retro = retro_fixture(f, %{stage: "idea-generation"})
       socket = room(f, retro)
-      assert_reply push(socket, "timer:command", %{"command" => "add_minute"}), :ok, _
+
+      assert_reply push(socket, "timer:command", %{"command" => "set_minutes", "minutes" => 5}),
+                   :ok,
+                   _
+
       assert_reply push(socket, "timer:command", %{"command" => "start"}), :ok, _
 
       assert {:ok, _} = Retros.change_stage(retro, "prime-directive", f.id)

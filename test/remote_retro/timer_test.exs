@@ -50,19 +50,18 @@ defmodule RemoteRetro.TimerTest do
              done |> apply_command(:start, at(200_000)) |> Timer.view(at(200_000))
   end
 
-  test "minutes adjust only while idle, between 1 and 60" do
-    assert {:ok, %{timer_duration_ms: 240_000}} = Timer.command({:adjust, 1}, timer(), @now)
-    assert {:ok, %{timer_duration_ms: 120_000}} = Timer.command({:adjust, -1}, timer(), @now)
-
-    assert {:ok, %{timer_duration_ms: 60_000}} =
-             Timer.command({:adjust, -1}, timer(%{timer_duration_ms: 60_000}), @now)
+  test "minutes are set only while idle, between 1 and 60" do
+    assert {:ok, %{timer_duration_ms: 240_000}} = Timer.command({:set_minutes, 4}, timer(), @now)
+    assert {:ok, %{timer_duration_ms: 60_000}} = Timer.command({:set_minutes, 1}, timer(), @now)
 
     assert {:ok, %{timer_duration_ms: 3_600_000}} =
-             Timer.command({:adjust, 1}, timer(%{timer_duration_ms: 3_600_000}), @now)
+             Timer.command({:set_minutes, 60}, timer(), @now)
+
+    assert {:error, :invalid} = Timer.command({:set_minutes, 0}, timer(), @now)
+    assert {:error, :invalid} = Timer.command({:set_minutes, 61}, timer(), @now)
 
     running = apply_command(timer(), :start, @now)
-    assert {:error, :timer_changed} = Timer.command({:adjust, 1}, running, @now)
-    assert {:error, :invalid} = Timer.command({:adjust, 5}, timer(), @now)
+    assert {:error, :timer_changed} = Timer.command({:set_minutes, 4}, running, @now)
   end
 
   test "commands that no longer fit the state are rejected" do

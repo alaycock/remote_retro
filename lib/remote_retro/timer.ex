@@ -56,7 +56,8 @@ defmodule RemoteRetro.Timer do
   end
 
   @doc """
-  Applies `:start`, `:pause`, `:reset` or `{:adjust, ±1}` (minutes, idle only).
+  Applies `:start`, `:pause`, `:reset` or `{:set_minutes, 1..60}` (idle only; absolute, so a
+  client can debounce rapid +/- clicks into one command).
   Returns `{:ok, attrs}` or `{:error, :timer_changed}` when the command no longer
   fits the timer's state (e.g. someone else already paused it).
   """
@@ -84,14 +85,11 @@ defmodule RemoteRetro.Timer do
 
   def command(:reset, _retro, _now), do: {:ok, %{timer_ends_at: nil, timer_remaining_ms: nil}}
 
-  def command({:adjust, minutes}, retro, now) when minutes in [-1, 1] do
+  def command({:set_minutes, minutes}, retro, now)
+      when is_integer(minutes) and minutes * @step_ms >= @min_ms and minutes * @step_ms <= @max_ms do
     case status(retro, now) do
-      :idle ->
-        duration = (retro.timer_duration_ms + minutes * @step_ms) |> max(@min_ms) |> min(@max_ms)
-        {:ok, %{timer_duration_ms: duration}}
-
-      _ ->
-        {:error, :timer_changed}
+      :idle -> {:ok, %{timer_duration_ms: minutes * @step_ms}}
+      _ -> {:error, :timer_changed}
     end
   end
 

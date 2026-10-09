@@ -155,8 +155,8 @@ defmodule RemoteRetroWeb.RetroChannel do
     end
   end
 
-  def handle_in("timer:command", %{"command" => command}, socket) do
-    with {:ok, command} <- timer_command(command),
+  def handle_in("timer:command", %{"command" => command} = params, socket) do
+    with {:ok, command} <- timer_command(command, params),
          {:ok, timer} <- Retros.timer_command(retro(socket), user_id(socket), command) do
       broadcast!(socket, "timer:updated", %{timer: timer})
       Reply.ok(socket, %{timer: timer})
@@ -199,18 +199,12 @@ defmodule RemoteRetroWeb.RetroChannel do
 
   defp take(params, keys), do: Map.take(params, keys)
 
-  @timer_commands %{
-    "start" => :start,
-    "pause" => :pause,
-    "reset" => :reset,
-    "add_minute" => {:adjust, 1},
-    "remove_minute" => {:adjust, -1}
-  }
+  defp timer_command("start", _params), do: {:ok, :start}
+  defp timer_command("pause", _params), do: {:ok, :pause}
+  defp timer_command("reset", _params), do: {:ok, :reset}
 
-  defp timer_command(command) do
-    case Map.fetch(@timer_commands, command) do
-      {:ok, command} -> {:ok, command}
-      :error -> {:error, :invalid}
-    end
-  end
+  defp timer_command("set_minutes", %{"minutes" => minutes}) when is_integer(minutes),
+    do: {:ok, {:set_minutes, minutes}}
+
+  defp timer_command(_command, _params), do: {:error, :invalid}
 end

@@ -69,7 +69,7 @@ export interface TimerState {
   remaining_ms: number
 }
 
-export type TimerCommand = "start" | "pause" | "reset" | "add_minute" | "remove_minute"
+export type TimerCommand = { command: "start" | "pause" | "reset" } | { command: "set_minutes"; minutes: number }
 
 export interface Snapshot {
   retro: Retro
@@ -111,7 +111,7 @@ export interface PushEvents {
   "retro:facilitator": { user_id: number }
   "user:typing": Record<string, never>
   "ai:regroup": Record<string, never>
-  "timer:command": { command: TimerCommand }
+  "timer:command": TimerCommand
   /** Dev only (see RemoteRetro.DevSeed). */
   "dev:seed_ideas": Record<string, never>
 }

@@ -260,7 +260,7 @@ export const commandTimer = createAppAsyncThunk(
   "timer/command",
   async (command: TimerCommand, { dispatch, extra, rejectWithValue }) => {
     try {
-      const { timer } = await extra.channel.push<"timer:command", { timer: TimerState }>("timer:command", { command })
+      const { timer } = await extra.channel.push<"timer:command", { timer: TimerState }>("timer:command", command)
       dispatch(timerUpdated(timer))
       return timer
     } catch (error) {

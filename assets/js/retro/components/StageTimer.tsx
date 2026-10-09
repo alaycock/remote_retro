@@ -10,6 +10,9 @@ const TIMED_STAGES: readonly Stage[] = ["idea-generation", "grouping", "voting"]
 const MIN_MS = 60_000
 const MAX_MS = 60 * 60_000
 const TICK_MS = 250
+const STEP_MS = 60_000
+/** +/- update instantly; the final duration is sent once clicking pauses for this long. */
+const ADJUST_DEBOUNCE_MS = 400
 
 export function formatTime(ms: number): string {
   const total = Math.ceil(ms / 1000)
@@ -47,8 +50,18 @@ export function StageTimer() {
   const isFacilitator = useAppSelector(selectIsFacilitator)
   const remaining = useRemaining(timer)
   const [pending, setPending] = useState(false)
+  // The duration the facilitator is dialling in with +/-, shown immediately and sent debounced.
+  const [draftMs, setDraftMs] = useState<number | null>(null)
+  const draftTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   useEffect(() => primeChime(), [])
+  useEffect(() => () => clearTimeout(draftTimer.current), [])
+
+  // Drop an unsent draft when the stage changes (every stage starts back at 3:00).
+  useEffect(() => {
+    clearTimeout(draftTimer.current)
+    setDraftMs(null)
+  }, [stage])
 
   // Chime once per run, only when we watched it reach zero (not when joining after it ended).
   const chimedFor = useRef<number | null>(null)
@@ -74,8 +87,32 @@ export function StageTimer() {
     }
   }
 
+  const sendDraft = (ms: number) => {
+    clearTimeout(draftTimer.current)
+    draftTimer.current = undefined
+    // Clear the draft only if no newer click happened while this was in flight.
+    void dispatch(commandTimer({ command: "set_minutes", minutes: ms / STEP_MS })).finally(() =>
+      setDraftMs((current) => (current === ms && draftTimer.current === undefined ? null : current)),
+    )
+  }
+
+  const durationMs = draftMs ?? timer.duration_ms
+  const adjust = (delta: number) => {
+    const next = Math.min(MAX_MS, Math.max(MIN_MS, durationMs + delta))
+    if (next === durationMs) return
+    setDraftMs(next)
+    clearTimeout(draftTimer.current)
+    draftTimer.current = setTimeout(() => sendDraft(next), ADJUST_DEBOUNCE_MS)
+  }
+
+  const start = () => {
+    // Send a still-debouncing duration first; the channel handles pushes in order.
+    if (draftMs != null && draftTimer.current !== undefined) sendDraft(draftMs)
+    void send({ command: "start" })
+  }
+
   const done = status === "done"
-  const time = formatTime(remaining)
+  const time = formatTime(status === "idle" ? durationMs : remaining)
   const label = { idle: time, running: `${time} left`, paused: `${time} left, paused`, done: "Time's up" }[status]
 
   return (
@@ -90,8 +127,8 @@ export function StageTimer() {
         <TimerButton
           icon="hero-minus-micro"
           label="One minute less"
-          disabled={pending || timer.duration_ms <= MIN_MS}
-          onClick={() => send("remove_minute")}
+          disabled={durationMs <= MIN_MS}
+          onClick={() => adjust(-STEP_MS)}
         />
       )}
       <span
@@ -107,19 +144,24 @@ export function StageTimer() {
         <TimerButton
           icon="hero-plus-micro"
           label="One minute more"
-          disabled={pending || timer.duration_ms >= MAX_MS}
-          onClick={() => send("add_minute")}
+          disabled={durationMs >= MAX_MS}
+          onClick={() => adjust(STEP_MS)}
         />
       )}
       {isFacilitator && status === "running" && (
-        <TimerButton icon="hero-pause-micro" label="Pause timer" disabled={pending} onClick={() => send("pause")} />
+        <TimerButton
+          icon="hero-pause-micro"
+          label="Pause timer"
+          disabled={pending}
+          onClick={() => send({ command: "pause" })}
+        />
       )}
       {isFacilitator && (status === "idle" || status === "paused") && (
         <TimerButton
           icon="hero-play-micro"
           label={status === "paused" ? "Resume timer" : "Start timer"}
           disabled={pending}
-          onClick={() => send("start")}
+          onClick={start}
         />
       )}
       {isFacilitator && status !== "idle" && (
@@ -127,7 +169,7 @@ export function StageTimer() {
           icon="hero-stop-micro"
           label="Stop and reset timer"
           disabled={pending}
-          onClick={() => send("reset")}
+          onClick={() => send({ command: "reset" })}
         />
       )}
     </div>

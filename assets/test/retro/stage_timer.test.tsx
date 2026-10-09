@@ -29,21 +29,46 @@ describe("StageTimer", () => {
     expect(formatTime(400)).toBe("0:01")
   })
 
-  it("shows the facilitator an idle 3:00 they can adjust and start", async () => {
-    const { channel, push } = mockChannel(() => Promise.resolve({ timer: idle }))
+  it("shows the facilitator an idle 3:00 they can adjust instantly and start", async () => {
+    const { channel, push } = mockChannel((_event, payload) =>
+      Promise.resolve({ timer: { ...idle, duration_ms: 360_000, remaining_ms: 360_000, ...(payload as object) } }),
+    )
     room({ push: channel })
     expect(screen.getByRole("timer")).toHaveAccessibleName("Timer: 3:00")
 
-    await act(async () => fireEvent.click(screen.getByRole("button", { name: "One minute more" })))
-    expect(push).toHaveBeenLastCalledWith("timer:command", { command: "add_minute" })
+    const more = screen.getByRole("button", { name: "One minute more" })
+    for (let i = 0; i < 4; i++) fireEvent.click(more)
+    fireEvent.click(screen.getByRole("button", { name: "One minute less" }))
+    // Every click shows at once; nothing is sent until clicking pauses.
+    expect(screen.getByRole("timer")).toHaveAccessibleName("Timer: 6:00")
+    expect(push).not.toHaveBeenCalled()
+
+    await act(async () => vi.advanceTimersByTime(400))
+    expect(push).toHaveBeenCalledTimes(1)
+    expect(push).toHaveBeenLastCalledWith("timer:command", { command: "set_minutes", minutes: 6 })
+    expect(screen.getByRole("timer")).toHaveAccessibleName("Timer: 6:00")
+
     await act(async () => fireEvent.click(screen.getByRole("button", { name: "Start timer" })))
     expect(push).toHaveBeenLastCalledWith("timer:command", { command: "start" })
-    expect(screen.queryByRole("button", { name: /pause|reset/i })).not.toBeInTheDocument()
   })
 
-  it("can't go below one minute", () => {
-    room({ timer: { ...idle, duration_ms: 60_000, remaining_ms: 60_000 } })
-    expect(screen.getByRole("button", { name: "One minute less" })).toBeDisabled()
+  it("sends a still-pending duration before starting", async () => {
+    const { channel, push } = mockChannel(() => Promise.resolve({ timer: idle }))
+    room({ push: channel })
+    fireEvent.click(screen.getByRole("button", { name: "One minute more" }))
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Start timer" })))
+    expect(push.mock.calls).toEqual([
+      ["timer:command", { command: "set_minutes", minutes: 4 }],
+      ["timer:command", { command: "start" }],
+    ])
+  })
+
+  it("stays between one and sixty minutes", () => {
+    room({ timer: { ...idle, duration_ms: 120_000, remaining_ms: 120_000 } })
+    const less = screen.getByRole("button", { name: "One minute less" })
+    fireEvent.click(less)
+    expect(less).toBeDisabled()
+    expect(screen.getByRole("timer")).toHaveAccessibleName("Timer: 1:00")
   })
 
   it("is hidden from others until it starts, and outside timed stages", () => {

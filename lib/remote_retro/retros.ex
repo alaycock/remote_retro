@@ -128,7 +128,7 @@ defmodule RemoteRetro.Retros do
 
   @doc """
   Facilitator-only: runs a `RemoteRetro.Timer` command (`:start`, `:pause`, `:reset`,
-  `{:adjust, ±1}`) in a timed stage. Returns `{:ok, timer_view}`.
+  `{:set_minutes, n}`) in a timed stage. Returns `{:ok, timer_view}`.
   """
   def timer_command(%Retro{id: retro_id}, actor_id, command) do
     Repo.transact(fn ->
