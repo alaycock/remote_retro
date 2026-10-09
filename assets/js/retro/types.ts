@@ -60,10 +60,22 @@ export interface Vote {
   group_id: number
 }
 
+export type TimerStatus = "idle" | "running" | "paused" | "done"
+
+/** The facilitator's stage countdown. `remaining_ms` is as of when the server sent it. */
+export interface TimerState {
+  status: TimerStatus
+  duration_ms: number
+  remaining_ms: number
+}
+
+export type TimerCommand = "start" | "pause" | "reset" | "add_minute" | "remove_minute"
+
 export interface Snapshot {
   retro: Retro
   /** Whether AI grouping is configured on the server. */
   ai_enabled?: boolean
+  timer?: TimerState
   users: User[]
   ideas: Idea[]
   groups: Group[]
@@ -99,6 +111,7 @@ export interface PushEvents {
   "retro:facilitator": { user_id: number }
   "user:typing": Record<string, never>
   "ai:regroup": Record<string, never>
+  "timer:command": { command: TimerCommand }
   /** Dev only (see RemoteRetro.DevSeed). */
   "dev:seed_ideas": Record<string, never>
 }
@@ -117,4 +130,5 @@ export interface BroadcastEvents {
   "vote:deleted": { id: number }
   "ai:error": { message: string }
   "user:typing": { user_id: number }
+  "timer:updated": { timer: TimerState }
 }

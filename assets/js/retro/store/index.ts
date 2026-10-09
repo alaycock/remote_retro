@@ -5,6 +5,7 @@ import {
   ideasSlice,
   presenceSlice,
   retroSlice,
+  timerSlice,
   uiSlice,
   usersSlice,
   votesSlice,
@@ -17,6 +18,7 @@ export const rootReducer = combineReducers({
   votes: votesSlice.reducer,
   users: usersSlice.reducer,
   presence: presenceSlice.reducer,
+  timer: timerSlice.reducer,
   ui: uiSlice.reducer,
 })
 

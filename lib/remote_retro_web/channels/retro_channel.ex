@@ -155,6 +155,16 @@ defmodule RemoteRetroWeb.RetroChannel do
     end
   end
 
+  def handle_in("timer:command", %{"command" => command}, socket) do
+    with {:ok, command} <- timer_command(command),
+         {:ok, timer} <- Retros.timer_command(retro(socket), user_id(socket), command) do
+      broadcast!(socket, "timer:updated", %{timer: timer})
+      Reply.ok(socket, %{timer: timer})
+    else
+      error -> Reply.error(socket, error)
+    end
+  end
+
   def handle_in("ai:regroup", _params, socket) do
     case Retros.regroup(retro(socket), user_id(socket)) do
       {:ok, status} -> Reply.ok(socket, %{status: Atom.to_string(status)})
@@ -188,4 +198,19 @@ defmodule RemoteRetroWeb.RetroChannel do
   defp user_id(socket), do: socket.assigns.user.id
 
   defp take(params, keys), do: Map.take(params, keys)
+
+  @timer_commands %{
+    "start" => :start,
+    "pause" => :pause,
+    "reset" => :reset,
+    "add_minute" => {:adjust, 1},
+    "remove_minute" => {:adjust, -1}
+  }
+
+  defp timer_command(command) do
+    case Map.fetch(@timer_commands, command) do
+      {:ok, command} -> {:ok, command}
+      :error -> {:error, :invalid}
+    end
+  end
 end

@@ -10,6 +10,7 @@ export const selectAiStatus = (state: RootState) => state.retro?.ai_status ?? nu
 export const selectCurrentUserId = (state: RootState) => state.ui.currentUserId
 export const selectConnected = (state: RootState) => state.ui.connected
 export const selectToasts = (state: RootState) => state.ui.toasts
+export const selectTimer = (state: RootState) => state.timer
 
 export const { selectAll: selectAllIdeas, selectById: selectIdeaById } = ideasAdapter.getSelectors(
   (state: RootState) => state.ideas,

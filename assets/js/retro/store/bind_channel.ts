@@ -10,6 +10,7 @@ import {
   presenceSynced,
   retroUpdated,
   snapshotReceived,
+  timerUpdated,
   toastShown,
   userTyping,
   userUpserted,
@@ -36,6 +37,7 @@ export function bindChannel(channel: RetroChannel, dispatch: AppDispatch): void 
   channel.on("group:updated", ({ group }) => dispatch(groupUpserted(group)))
   channel.on("vote:created", ({ vote }) => dispatch(voteAdded(vote)))
   channel.on("vote:deleted", ({ id }) => dispatch(voteRemoved(id)))
+  channel.on("timer:updated", ({ timer }) => dispatch(timerUpdated(timer)))
   channel.on("ai:error", ({ message }) => dispatch(toastShown("error", message)))
 
   const typingTimers = new Map<number, ReturnType<typeof setTimeout>>()

@@ -1,7 +1,10 @@
 import { createEntityAdapter, createSlice, type PayloadAction } from "@reduxjs/toolkit"
-import type { Group, Idea, IdeaPosition, PresenceState, Retro, Snapshot, User, Vote } from "../types"
+import type { Group, Idea, IdeaPosition, PresenceState, Retro, Snapshot, TimerState, User, Vote } from "../types"
 
-export const snapshotReceived = (snapshot: Snapshot) => ({ type: "snapshot/received", payload: snapshot }) as const
+// `receivedAt` (performance.now()) lets the timer count down from the moment the server's
+// `remaining_ms` arrived, on this client's own clock.
+export const snapshotReceived = (snapshot: Snapshot) =>
+  ({ type: "snapshot/received", payload: snapshot, meta: { receivedAt: performance.now() } }) as const
 const isSnapshot = (action: { type: string }): action is ReturnType<typeof snapshotReceived> =>
   action.type === "snapshot/received"
 
@@ -91,6 +94,26 @@ export const presenceSlice = createSlice({
   },
 })
 
+export interface TimerSliceState extends TimerState {
+  /** performance.now() when this state arrived; a running timer counts down from here. */
+  receivedAt: number
+}
+
+export const timerSlice = createSlice({
+  name: "timer",
+  initialState: null as TimerSliceState | null,
+  reducers: {
+    timerUpdated: {
+      reducer: (_state, action: PayloadAction<TimerSliceState>) => action.payload,
+      prepare: (timer: TimerState) => ({ payload: { ...timer, receivedAt: performance.now() } }),
+    },
+  },
+  extraReducers: (builder) =>
+    builder.addMatcher(isSnapshot, (_state, action) =>
+      action.payload.timer ? { ...action.payload.timer, receivedAt: action.meta.receivedAt } : null,
+    ),
+})
+
 export interface Toast {
   id: number
   kind: "error" | "info"
@@ -132,4 +155,5 @@ export const { groupUpserted, groupsReplaced } = groupsSlice.actions
 export const { voteAdded, voteRemoved } = votesSlice.actions
 export const { userUpserted } = usersSlice.actions
 export const { presenceSynced, userTyping } = presenceSlice.actions
+export const { timerUpdated } = timerSlice.actions
 export const { currentUserSet, devToolsEnabled, connectedChanged, toastShown, toastDismissed } = uiSlice.actions

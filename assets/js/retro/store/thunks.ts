@@ -1,10 +1,19 @@
 import { PushError } from "../channel"
 import { VOTE_LIMIT } from "../constants"
-import type { Category, Group, Idea, Retro, Stage, Vote } from "../types"
+import type { Category, Group, Idea, Retro, Stage, TimerCommand, TimerState, Vote } from "../types"
 import { createAppAsyncThunk } from "./hooks"
 import type { AppDispatch } from "./index"
 import { selectMyVotesLeft } from "./selectors"
-import { groupUpserted, ideaRemoved, retroUpdated, ideaUpserted, toastShown, voteAdded, voteRemoved } from "./slices"
+import {
+  groupUpserted,
+  ideaRemoved,
+  retroUpdated,
+  ideaUpserted,
+  timerUpdated,
+  toastShown,
+  voteAdded,
+  voteRemoved,
+} from "./slices"
 
 const REASON_MESSAGES: Record<string, string> = {
   not_found: "It no longer exists.",
@@ -13,6 +22,7 @@ const REASON_MESSAGES: Record<string, string> = {
   ai_busy: "Ideas are still being grouped. Try again in a moment.",
   ai_disabled: "AI grouping isn't set up on this server.",
   regroup_limit: "Grouping can only be re-run twice per retro.",
+  timer_changed: "The timer changed. Try again.",
   vote_limit: `You've already used all ${VOTE_LIMIT} votes.`,
   invalid: "Please check what you entered and try again.",
   unknown: "Something went wrong. Please try again.",
@@ -245,3 +255,16 @@ export const regroupIdeas = createAppAsyncThunk("ai/regroup", async (_: void, { 
     return rejectWithValue(report(dispatch, error, "Couldn't re-run grouping."))
   }
 })
+
+export const commandTimer = createAppAsyncThunk(
+  "timer/command",
+  async (command: TimerCommand, { dispatch, extra, rejectWithValue }) => {
+    try {
+      const { timer } = await extra.channel.push<"timer:command", { timer: TimerState }>("timer:command", { command })
+      dispatch(timerUpdated(timer))
+      return timer
+    } catch (error) {
+      return rejectWithValue(report(dispatch, error, "Couldn't update the timer."))
+    }
+  },
+)
