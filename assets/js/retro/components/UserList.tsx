@@ -2,10 +2,9 @@ import { useId, useState } from "react"
 import { VOTE_LIMIT } from "../constants"
 import { useAppDispatch, useAppSelector } from "../store/hooks"
 import {
-  selectAbsentContributors,
+  selectContributors,
   selectCurrentUserId,
   selectIsFacilitator,
-  selectPresentUsers,
   selectRetro,
   selectStage,
   selectTypingUserIds,
@@ -18,43 +17,29 @@ import { Avatar } from "./Avatar"
 import { ConfirmDialog } from "./ConfirmDialog"
 
 /**
- * Online participants (with facilitator badge, per-stage status and facilitator hand-off), then
- * people who contributed but have since left.
+ * Everyone online plus people who contributed and left, with facilitator badge, per-stage status
+ * and facilitator hand-off (online only).
  */
 export function UserList() {
   const dispatch = useAppDispatch()
-  const users = useAppSelector(selectPresentUsers)
-  const absent = useAppSelector(selectAbsentContributors)
+  const contributors = useAppSelector(selectContributors)
   const [handOffTo, setHandOffTo] = useState<User | null>(null)
   const headingId = useId()
-  const absentHeadingId = useId()
   const stage = useAppSelector(selectStage)
 
   return (
     <section aria-labelledby={headingId}>
       <div className="mb-2 flex items-center gap-2">
         <h2 id={headingId} className="flex items-center gap-2 text-sm font-semibold">
-          Here now <span className="badge badge-sm badge-ghost">{users.length}</span>
+          Contributors <span className="badge badge-sm badge-ghost">{contributors.length}</span>
         </h2>
         {stage === "voting" && <VotingStatus />}
       </div>
-      <ul className="space-y-1">
-        {users.map((user) => (
-          <UserRow key={user.id} user={user} online onHandOff={setHandOffTo} />
+      <ul aria-labelledby={headingId} className="space-y-1">
+        {contributors.map(({ user, online }) => (
+          <UserRow key={user.id} user={user} online={online} onHandOff={setHandOffTo} />
         ))}
       </ul>
-      {absent.length > 0 && (
-        <>
-          <h3 id={absentHeadingId} className="mt-4 mb-2 flex items-center gap-2 text-sm font-semibold">
-            Also contributed <span className="badge badge-sm badge-ghost">{absent.length}</span>
-          </h3>
-          <ul aria-labelledby={absentHeadingId} className="space-y-1">
-            {absent.map((user) => (
-              <UserRow key={user.id} user={user} online={false} onHandOff={setHandOffTo} />
-            ))}
-          </ul>
-        </>
-      )}
       <ConfirmDialog
         open={handOffTo != null}
         title="Hand off facilitation"

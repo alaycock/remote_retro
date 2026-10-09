@@ -136,25 +136,35 @@ export const selectPresentUsers = createSelector(
       }),
 )
 
+export interface Contributor {
+  user: User
+  online: boolean
+}
+
 /**
- * Participants who aren't online but left a mark on the retro (wrote an idea or action item,
- * voted, own an action item, or facilitate it), alphabetical. People who only looked in are left out.
+ * Everyone online plus anyone who left a mark on the retro (wrote an idea or action item, voted,
+ * owns an action item, or facilitates it). Online first, then by name (id breaks ties). People
+ * who only looked in and left are excluded.
  */
-export const selectAbsentContributors = createSelector(
+export const selectContributors = createSelector(
   [selectOnlineUserIds, selectUsersById, selectAllIdeas, selectAllVotes, selectRetro],
-  (onlineIds, users, ideas, votes, retro): User[] => {
-    const contributed = new Set<number>()
+  (onlineIds, users, ideas, votes, retro): Contributor[] => {
+    const online = new Set(onlineIds)
+    const ids = new Set(onlineIds)
     for (const idea of ideas) {
-      contributed.add(idea.user_id)
-      if (idea.assignee_id != null) contributed.add(idea.assignee_id)
+      ids.add(idea.user_id)
+      if (idea.assignee_id != null) ids.add(idea.assignee_id)
     }
-    for (const vote of votes) contributed.add(vote.user_id)
-    if (retro?.facilitator_id != null) contributed.add(retro.facilitator_id)
-    for (const id of onlineIds) contributed.delete(id)
-    return [...contributed]
+    for (const vote of votes) ids.add(vote.user_id)
+    if (retro?.facilitator_id != null) ids.add(retro.facilitator_id)
+    return [...ids]
       .map((id) => users[id])
       .filter((user): user is User => user != null)
-      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((user) => ({ user, online: online.has(user.id) }))
+      .sort(
+        (a, b) =>
+          Number(b.online) - Number(a.online) || a.user.name.localeCompare(b.user.name) || a.user.id - b.user.id,
+      )
   },
 )
 
