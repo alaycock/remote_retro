@@ -46,7 +46,11 @@ function IdeaColumn({ category, ideas, showHeading = true }: { category: Categor
       >
         <CategoryIcon category={category} />
         {meta.label}
-        <span className="badge badge-sm badge-ghost ml-auto">{ideas.length}</span>
+        <span className="badge badge-sm badge-ghost ml-auto">
+          <span className="sr-only">, </span>
+          {ideas.length}
+          <span className="sr-only"> {ideas.length === 1 ? "idea" : "ideas"}</span>
+        </span>
       </h2>
       {ideas.length === 0 ? (
         <p className="px-1 py-6 text-center text-sm text-base-content/50">No ideas yet</p>
@@ -76,6 +80,7 @@ export function IdeaGeneration() {
 
   return (
     <div className="mx-auto flex h-full max-w-6xl flex-col gap-3 p-3 sm:p-4">
+      <h1 className="sr-only">Ideas</h1>
       <IdeaForm categories={categories} category={category} onCategoryChange={setCategory} />
       <DevSeedButton />
       <TypingIndicator />
@@ -100,7 +105,11 @@ export function IdeaGeneration() {
               >
                 <CategoryIcon category={c} size="sm" />
                 {CATEGORY_META[c].label}
-                <span className="text-xs opacity-60">{byCategory[c]?.length ?? 0}</span>
+                <span className="text-xs opacity-60">
+                  <span className="sr-only">, </span>
+                  {byCategory[c]?.length ?? 0}
+                  <span className="sr-only"> ideas</span>
+                </span>
               </button>
             ))}
           </div>

@@ -81,7 +81,7 @@ export function Voting() {
         <ul className="columns-1 gap-3 md:columns-2 xl:columns-3 2xl:columns-4">
           {groups.map((group) => (
             <li key={group.id} className="mb-3 break-inside-avoid">
-              <GroupCard compact group={group} footer={<VoteControls group={group} votesLeft={votesLeft} />} />
+              <GroupCard compact headingLevel={2} group={group} footer={<VoteControls group={group} votesLeft={votesLeft} />} />
             </li>
           ))}
         </ul>

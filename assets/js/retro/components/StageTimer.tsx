@@ -154,6 +154,10 @@ export function StageTimer() {
       {isFacilitator && status !== "idle" && (
         <TimerButton icon={<StopGlyph />} label="Stop and reset timer" onClick={() => send({ command: "reset" })} />
       )}
+      {/* The chime is audio-only and role="timer" isn't announced, so say it for screen readers. */}
+      <span className="sr-only" aria-live="polite">
+        {done ? "Time's up" : ""}
+      </span>
     </div>
   )
 }

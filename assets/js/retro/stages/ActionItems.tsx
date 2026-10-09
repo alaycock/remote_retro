@@ -9,7 +9,7 @@ export function ActionItems() {
         <h1 id="discuss-heading" className="mb-3 text-lg font-semibold">
           Discuss, most votes first
         </h1>
-        <RankedGroups />
+        <RankedGroups headingLevel={2} />
       </section>
       <section aria-labelledby="action-items-heading" className="flex flex-col gap-3 lg:sticky lg:top-4 lg:self-start">
         <h2 id="action-items-heading" className="sr-only">

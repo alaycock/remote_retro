@@ -3,7 +3,7 @@ import { selectRankedGroups } from "../store/selectors"
 import { GroupCard } from "./GroupCard"
 
 /** Groups ordered by total votes, with tallies. Read-only. */
-export function RankedGroups() {
+export function RankedGroups({ headingLevel = 3 }: { headingLevel?: 2 | 3 }) {
   const groups = useAppSelector(selectRankedGroups)
   if (groups.length === 0) {
     return <p className="py-6 text-center text-sm text-base-content/50">No groups to discuss.</p>
@@ -14,6 +14,7 @@ export function RankedGroups() {
         <li key={group.id}>
           <GroupCard
             compact
+            headingLevel={headingLevel}
             group={group}
             badge={
               <span

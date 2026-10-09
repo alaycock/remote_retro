@@ -40,6 +40,8 @@ export function Grouping() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
+      {/* The list view has its own visible h1. */}
+      {view === "board" && <h1 className="sr-only">Group &amp; label</h1>}
       <div className="flex items-center justify-end gap-2 border-b border-base-300 bg-base-100 px-4 py-2">
         <RegroupButton />
         <div role="tablist" aria-label="Grouping view" className="tabs tabs-box tabs-sm">

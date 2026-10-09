@@ -11,7 +11,7 @@ const LINES = [
 export function PrimeDirective() {
   return (
     <div className="mx-auto flex min-h-full max-w-2xl flex-col justify-center px-4 py-10 text-center">
-      <p className="text-sm font-semibold tracking-widest text-primary uppercase">The Prime Directive</p>
+      <h1 className="text-sm font-semibold tracking-widest text-primary uppercase">The Prime Directive</h1>
       <blockquote className="mt-6 text-xl leading-relaxed font-medium sm:text-2xl">
         {LINES.map((line) => (
           <span key={line} className="block">
