@@ -1,11 +1,7 @@
 defmodule RemoteRetro.RetrosStageTest do
   use RemoteRetro.DataCase, async: true
   import RemoteRetro.Fixtures
-  import Mox
   alias RemoteRetro.{Groups, Ideas, Retros}
-  alias RemoteRetro.AI.RunnerMock
-
-  setup :verify_on_exit!
 
   setup do
     facilitator = user_fixture()
@@ -43,15 +39,13 @@ defmodule RemoteRetro.RetrosStageTest do
     assert Retros.get_retro!(retro.id).stage == "idea-generation"
   end
 
-  test "entering grouping places ideas, syncs groups and starts AI grouping" do
-    facilitator = highbeam_user_fixture()
-    retro = retro_fixture(facilitator, %{stage: "idea-generation"})
-    idea_fixture(retro, facilitator)
-    idea_fixture(retro, facilitator, %{category: "sad"})
-    id = retro.id
-    expect(RunnerMock, :start, fn :grouping, ^id -> :ok end)
+  test "entering grouping places ideas and syncs groups without AI when the facilitator isn't allow-listed",
+       %{facilitator: f} do
+    retro = retro_fixture(f, %{stage: "idea-generation"})
+    idea_fixture(retro, f)
+    idea_fixture(retro, f, %{category: "sad"})
 
-    assert {:ok, _} = Retros.change_stage(retro, "grouping", facilitator.id)
+    assert {:ok, _} = Retros.change_stage(retro, "grouping", f.id)
     ideas = Ideas.list_ideas(retro.id)
     assert Enum.all?(ideas, &(&1.x && &1.group_id))
     assert length(Groups.list_groups(retro.id)) == 2

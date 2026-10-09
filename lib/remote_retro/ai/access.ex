@@ -14,29 +14,26 @@ defmodule RemoteRetro.AI.Access do
   assertion) and the occasional userinfo response that omits `hd`.
 
   The allow-list is `config :remote_retro, :ai, :allowed_domains`
-  (`AI_ALLOWED_DOMAINS`, default `highbeam.co`). An explicit empty list
-  allows nobody.
+  (`AI_ALLOWED_DOMAINS`). Unset or empty allows nobody.
 
   Gating is per acting user, which for every AI call is the facilitator at
-  that moment. A Highbeam facilitator can run AI in a room that also has
+  that moment. An allowed facilitator can run AI in a room that also has
   outside guests (they see the result; they don't start the paid call). A
-  facilitator who isn't allowed cannot, even if a Highbeam colleague is in
-  the room. Handing the role across that line turns AI on or off for the
-  next action.
+  facilitator who isn't allowed cannot, even if a colleague who is allowed
+  is in the room. Handing the role across that line turns AI on or off for
+  the next action.
   """
 
   alias RemoteRetro.Accounts.User
 
-  @default_domains ["highbeam.co"]
-
-  @doc "Workspace domains that may use AI, lowercased, without a leading `@`."
+  @doc "Workspace domains that may use AI, lowercased, without a leading `@`. Empty when unset."
   def allowed_domains do
-    case Keyword.get(ai_config(), :allowed_domains) do
+    case Keyword.get(ai_config(), :allowed_domains, []) do
       domains when is_list(domains) ->
         domains |> Enum.map(&normalize_domain/1) |> Enum.reject(&is_nil/1) |> Enum.uniq()
 
       _ ->
-        @default_domains
+        []
     end
   end
 

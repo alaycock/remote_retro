@@ -51,9 +51,13 @@ defmodule RemoteRetro.AI.AccessTest do
     refute Access.member?(user(%{}))
   end
 
-  test "a missing allow-list falls back to highbeam.co" do
+  test "an unset allow-list allows nobody" do
     Application.put_env(:remote_retro, :ai, enabled: true)
-    assert Access.allowed_domains() == ["highbeam.co"]
+    assert Access.allowed_domains() == []
+    refute Access.member?(user(%{}))
+
+    Application.put_env(:remote_retro, :ai, enabled: true, allowed_domains: nil)
+    assert Access.allowed_domains() == []
   end
 
   test "sign-in stores the Google claims and refreshes them next time" do

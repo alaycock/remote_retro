@@ -20,7 +20,8 @@ defmodule RemoteRetro.RetrosRegroupTest do
     }
   end
 
-  defp enable_ai, do: Application.put_env(:remote_retro, :ai, enabled: true)
+  defp enable_ai,
+    do: Application.put_env(:remote_retro, :ai, enabled: true, allowed_domains: ["highbeam.co"])
 
   test "facilitator only, in Group & label, while the AI is idle", %{
     facilitator: f,
@@ -44,7 +45,7 @@ defmodule RemoteRetro.RetrosRegroupTest do
     outsider_retro = retro_fixture(outsider, %{stage: "grouping"})
 
     assert {:error, :ai_forbidden} = Retros.regroup(outsider_retro, outsider.id)
-    # A Highbeam colleague in the room doesn't unlock it.
+    # A colleague who is allowed doesn't unlock it for this facilitator.
     :ok = Retros.participate(outsider_retro, f.id)
     assert {:error, :ai_forbidden} = Retros.regroup(outsider_retro, outsider.id)
 

@@ -23,7 +23,7 @@ defmodule RemoteRetroWeb.AuthController do
 
     # No Google assertion on this route (it isn't compiled into the prod router).
     # Marking the email verified lets the domain fallback in AI.Access apply, so
-    # `/dev/login?email=you@highbeam.co` can exercise AI locally.
+    # a dev login on a domain listed in AI_ALLOWED_DOMAINS can exercise AI locally.
     sign_in(
       %{
         "email" => email,
