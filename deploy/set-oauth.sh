@@ -4,9 +4,8 @@
 # client id. Run via: deploy/run.sh ./deploy/set-oauth.sh
 set -euo pipefail
 
-PROJECT="${PROJECT:-hb-remote-retro}"
-REGION="${REGION:-us-central1}"
-SERVICE="${SERVICE:-remote-retro}"
+# shellcheck source=deploy/config.sh
+source "$(dirname "$0")/config.sh"
 SECRET="remote-retro-oauth-client-secret"
 
 # shellcheck disable=SC1091

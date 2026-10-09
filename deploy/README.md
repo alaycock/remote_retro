@@ -6,12 +6,16 @@ Gemini uses the service's own service account — no key files.
 
 | Resource | Name |
 |---|---|
-| Project / region | `hb-remote-retro` / `us-central1` |
+| Project / region | `PROJECT` / `REGION` from [`config.sh`](config.sh) (currently `hb-remote-retro` / `us-central1`) |
 | Cloud Run service | `remote-retro` (min = max = 1, session affinity, 60 min request timeout) |
 | Cloud SQL | `remote-retro-db`, Postgres 17, `db-f1-micro`, daily backups |
 | Service account | `remote-retro-run@…` — Cloud SQL Client, Vertex AI User, access to its secrets |
-| Secrets (Secret Manager) | `remote-retro-database-url`, `remote-retro-secret-key-base`, `remote-retro-oauth-client-secret` |
-| Images | Artifact Registry `us-central1-docker.pkg.dev/hb-remote-retro/remote-retro/app` |
+| Secrets (Secret Manager) | `remote-retro-database-url`, `remote-retro-secret-key-base`, `remote-retro-oauth-client-secret`, `remote-retro-staging-db-password` (+ `remote-retro-sendgrid-api-key` if email is on) |
+| Images | Artifact Registry `<region>-docker.pkg.dev/<project>/remote-retro/app` |
+| GitHub deploys | Workload Identity pool `github` / provider `github-oidc`, deployer SA `remote-retro-deployer@…` |
+
+Every script reads its names from [`config.sh`](config.sh); override per run with env vars
+(`deploy/run.sh env PROJECT=other ./deploy/deploy.sh`).
 
 Rough cost: ~$10/mo Cloud SQL + ~$10–15/mo for the always-on instance.
 
@@ -50,12 +54,9 @@ Override defaults with env vars, e.g. `deploy/run.sh env SQL_TIER=db-g1-small ./
 
 ## Email
 
-Without `SENDGRID_API_KEY` the action-item emails are only logged. To send them, store the key
-as a secret and add it to the service:
-
-    deploy/run.sh gcloud run services update remote-retro --region us-central1 \
-      --update-secrets SENDGRID_API_KEY=<secret-name>:latest \
-      --update-env-vars 'MAIL_FROM="Remote Retro" <retro@your-domain>'
+Without `SENDGRID_API_KEY` the action-item emails are only logged (the case today). To send
+them, add `SENDGRID_API_KEY` and `MAIL_FROM` to `deploy/env.prod.sh` and re-run `deploy.sh`: it
+stores the key in Secret Manager and wires both into the service.
 
 ## Useful
 
@@ -75,6 +76,11 @@ account can only deploy revisions, act as the runtime service account, and push 
 image repository. One-time setup (after the first `deploy.sh`):
 
     deploy/run.sh ./deploy/setup-github.sh
+
+Where the workflow deploys comes from **repository variables** (Settings → Secrets and variables →
+Actions → Variables): `GCP_PROJECT`, `GCP_REGION`, `GCP_WIF_PROVIDER`, `GCP_DEPLOYER_SA`,
+`APP_URL`. `setup-github.sh` prints them. The deploy job
+fails fast if one is missing.
 
 Re-run `deploy.sh` locally when infrastructure or config changes (scaling, env vars, secrets).
 

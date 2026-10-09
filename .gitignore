@@ -44,3 +44,4 @@ npm-debug.log
 
 # local dev sample data (may contain real retro content)
 /priv/dev/
+/docker-dev/.env
