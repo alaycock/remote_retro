@@ -29,6 +29,9 @@ defmodule RemoteRetroWeb.Endpoint do
     from: :remote_retro,
     gzip: not code_reloading?,
     only: RemoteRetroWeb.static_paths(),
+    # `phx.digest` renames root files (favicon.ico -> favicon-<hash>.ico) and `~p` links to those,
+    # so match them by prefix as well; `only` alone 404s them in prod.
+    only_matching: ~w(favicon apple-touch-icon site robots),
     raise_on_missing_only: code_reloading?
 
   # Code reloading can be explicitly enabled under the
