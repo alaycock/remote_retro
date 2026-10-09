@@ -11,6 +11,8 @@ const REASON_MESSAGES: Record<string, string> = {
   forbidden: "You don't have permission to do that.",
   invalid_stage: "That isn't possible in the current stage.",
   ai_busy: "Ideas are still being grouped. Try again in a moment.",
+  ai_disabled: "AI grouping isn't set up on this server.",
+  regroup_limit: "Grouping can only be re-run twice per retro.",
   vote_limit: `You've already used all ${VOTE_LIMIT} votes.`,
   invalid: "Please check what you entered and try again.",
   unknown: "Something went wrong. Please try again.",
@@ -232,3 +234,14 @@ export const seedSampleIdeas = createAppAsyncThunk(
     }
   },
 )
+
+/** Facilitator: run AI grouping again over ideas that aren't in a group yet. */
+export const regroupIdeas = createAppAsyncThunk("ai/regroup", async (_: void, { dispatch, extra, rejectWithValue }) => {
+  try {
+    const { status } = await extra.channel.push<"ai:regroup", { status: string }>("ai:regroup", {})
+    if (status === "nothing_to_group") dispatch(toastShown("info", "Every idea is already in a group."))
+    return status
+  } catch (error) {
+    return rejectWithValue(report(dispatch, error, "Couldn't re-run grouping."))
+  }
+})

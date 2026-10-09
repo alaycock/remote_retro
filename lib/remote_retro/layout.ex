@@ -8,7 +8,7 @@ defmodule RemoteRetro.Layout do
   gap, so nothing overlaps and nothing groups by accident.
   """
   import Ecto.Query
-  alias RemoteRetro.{Formats, Grouping, Repo}
+  alias RemoteRetro.{Formats, Grouping, Ideas, Repo}
   alias RemoteRetro.Ideas.Idea
   alias RemoteRetro.Retros.Retro
 
@@ -35,20 +35,18 @@ defmodule RemoteRetro.Layout do
       )
       |> Enum.split_with(&(is_number(&1.x) and is_number(&1.y)))
 
-    now = DateTime.utc_now()
-
     {positions, _extent} = pack(pending, Formats.categories(format), {0, origin_y(positioned)})
 
-    placed =
-      Enum.map(positions, fn {idea, x, y} ->
-        Repo.update_all(from(i in Idea, where: i.id == ^idea.id),
-          set: [x: x, y: y, updated_at: now]
-        )
+    :ok =
+      Ideas.update_positions(
+        retro_id,
+        Enum.map(positions, fn {idea, x, y} -> {idea.id, x, y} end)
+      )
 
-        %{id: idea.id, group_id: idea.group_id, x: x, y: y}
-      end)
-
-    {:ok, placed}
+    {:ok,
+     Enum.map(positions, fn {idea, x, y} ->
+       %{id: idea.id, group_id: idea.group_id, x: x, y: y}
+     end)}
   end
 
   defp origin_y([]), do: 0

@@ -155,6 +155,13 @@ defmodule RemoteRetroWeb.RetroChannel do
     end
   end
 
+  def handle_in("ai:regroup", _params, socket) do
+    case Retros.regroup(retro(socket), user_id(socket)) do
+      {:ok, status} -> Reply.ok(socket, %{status: Atom.to_string(status)})
+      error -> Reply.error(socket, error)
+    end
+  end
+
   def handle_in("user:typing", _params, socket) do
     broadcast_from!(socket, "user:typing", %{user_id: user_id(socket)})
     Reply.ok(socket, %{})

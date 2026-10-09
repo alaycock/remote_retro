@@ -17,4 +17,32 @@ defmodule RemoteRetroWeb.RetroControllerTest do
     assert html =~ ~s(id="retro-root")
     assert html =~ "/assets/js/retro/main.js"
   end
+
+  test "lists retros by date with the viewer's own action items", %{conn: conn} do
+    me = user_fixture(%{"name" => "Me Person"})
+    other = user_fixture()
+    retro = retro_fixture(me, %{stage: "closed"})
+
+    idea_fixture(retro, me, %{
+      category: "action-item",
+      body: "Fix the flaky tests",
+      assignee_id: me.id
+    })
+
+    idea_fixture(retro, me, %{
+      category: "action-item",
+      body: "Someone else's job",
+      assignee_id: other.id
+    })
+
+    _empty = retro_fixture(me)
+
+    html = conn |> sign_in(me) |> get(~p"/retros") |> html_response(200)
+
+    assert html =~ Calendar.strftime(retro.inserted_at, "%a, %b %-d, %Y")
+    assert html =~ "1 action item for you"
+    assert html =~ "Fix the flaky tests"
+    refute html =~ "Someone else&#39;s job"
+    assert html =~ "No action items assigned to you."
+  end
 end

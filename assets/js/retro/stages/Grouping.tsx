@@ -11,11 +11,18 @@ import {
 import { Board } from "../board/Board"
 import { moveIdea } from "../board/thunks"
 import { CategoryIcon } from "../components/CategoryIcon"
-import { MAX_LABEL_LENGTH, cardHeight } from "../constants"
+import { MAX_LABEL_LENGTH, MAX_REGROUPS, cardHeight } from "../constants"
 import { useAppDispatch, useAppSelector } from "../store/hooks"
-import { selectAiStatus, selectAllIdeas, selectGroupsWithIdeas, type GroupWithIdeas } from "../store/selectors"
+import {
+  selectAiStatus,
+  selectAllIdeas,
+  selectGroupsWithIdeas,
+  selectIsFacilitator,
+  selectRetro,
+  type GroupWithIdeas,
+} from "../store/selectors"
 import { ideaMovedLocally } from "../store/slices"
-import { updateGroupLabel } from "../store/thunks"
+import { regroupIdeas, updateGroupLabel } from "../store/thunks"
 import type { Idea } from "../types"
 import { freeSlot, joinPosition, toCards, type Card, type Point } from "./listMoves"
 
@@ -34,6 +41,7 @@ export function Grouping() {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex items-center justify-end gap-2 border-b border-base-300 bg-base-100 px-4 py-2">
+        <RegroupButton />
         <div role="tablist" aria-label="Grouping view" className="tabs tabs-box tabs-sm">
           {(["board", "list"] as const).map((key) => (
             <button
@@ -419,5 +427,30 @@ function LabelInput({ id, group }: { id: string; group: GroupWithIdeas }) {
         </span>
       )}
     </div>
+  )
+}
+
+/** Facilitator-only: run AI grouping again over the ideas that aren't in a group yet. */
+function RegroupButton() {
+  const dispatch = useAppDispatch()
+  const isFacilitator = useAppSelector(selectIsFacilitator)
+  const aiEnabled = useAppSelector((state) => state.ui.aiEnabled)
+  const aiBusy = useAppSelector(selectAiStatus) != null
+  const used = useAppSelector(selectRetro)?.ai_regroups ?? 0
+  const left = MAX_REGROUPS - used
+  if (!isFacilitator || !aiEnabled || left <= 0) return null
+
+  return (
+    <button
+      type="button"
+      className="btn btn-ghost btn-sm gap-1.5"
+      disabled={aiBusy}
+      onClick={() => dispatch(regroupIdeas())}
+      title={`Group related ideas that aren't in a group yet. Existing groups stay as they are. ${left} of ${MAX_REGROUPS} re-runs left.`}
+    >
+      <span className="hero-sparkles-micro size-4" aria-hidden="true" />
+      Re-run grouping
+      <span className="badge badge-ghost badge-sm font-normal">{left} left</span>
+    </button>
   )
 }

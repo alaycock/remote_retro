@@ -21,6 +21,8 @@ export interface Retro {
   stage: Stage
   facilitator_id: number | null
   ai_status: AiStatus
+  /** AI re-groupings used so far (server caps it at MAX_REGROUPS). */
+  ai_regroups?: number
   inserted_at: string
 }
 
@@ -60,6 +62,8 @@ export interface Vote {
 
 export interface Snapshot {
   retro: Retro
+  /** Whether AI grouping is configured on the server. */
+  ai_enabled?: boolean
   users: User[]
   ideas: Idea[]
   groups: Group[]
@@ -94,6 +98,7 @@ export interface PushEvents {
   "retro:stage": { stage: Stage }
   "retro:facilitator": { user_id: number }
   "user:typing": Record<string, never>
+  "ai:regroup": Record<string, never>
   /** Dev only (see RemoteRetro.DevSeed). */
   "dev:seed_ideas": Record<string, never>
 }
