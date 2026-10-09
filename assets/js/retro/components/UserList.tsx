@@ -2,10 +2,11 @@ import { useId, useState } from "react"
 import { VOTE_LIMIT } from "../constants"
 import { useAppDispatch, useAppSelector } from "../store/hooks"
 import {
+  selectContributors,
   selectCurrentUserId,
   selectIsFacilitator,
-  selectPresentUsers,
   selectRetro,
+  selectStage,
   selectTypingUserIds,
   selectVoteCountsByUser,
   selectVotersRemaining,
@@ -15,75 +16,29 @@ import type { User } from "../types"
 import { Avatar } from "./Avatar"
 import { ConfirmDialog } from "./ConfirmDialog"
 
-/** Online participants with facilitator badge, per-stage status and facilitator hand-off. */
+/**
+ * Everyone online plus people who contributed and left, with facilitator badge, per-stage status
+ * and facilitator hand-off (online only).
+ */
 export function UserList() {
   const dispatch = useAppDispatch()
-  const users = useAppSelector(selectPresentUsers)
-  const retro = useAppSelector(selectRetro)
-  const currentUserId = useAppSelector(selectCurrentUserId)
-  const isFacilitator = useAppSelector(selectIsFacilitator)
-  const typing = useAppSelector(selectTypingUserIds)
-  const voteCounts = useAppSelector(selectVoteCountsByUser)
+  const contributors = useAppSelector(selectContributors)
   const [handOffTo, setHandOffTo] = useState<User | null>(null)
   const headingId = useId()
-
-  const stage = retro?.stage
+  const stage = useAppSelector(selectStage)
 
   return (
     <section aria-labelledby={headingId}>
       <div className="mb-2 flex items-center gap-2">
         <h2 id={headingId} className="flex items-center gap-2 text-sm font-semibold">
-          Here now <span className="badge badge-sm badge-ghost">{users.length}</span>
+          Contributors <span className="badge badge-sm badge-ghost">{contributors.length}</span>
         </h2>
         {stage === "voting" && <VotingStatus />}
       </div>
-      <ul className="space-y-1">
-        {users.map((user) => {
-          const facilitator = user.id === retro?.facilitator_id
-          const votes = voteCounts[user.id] ?? 0
-          return (
-            <li key={user.id} className="group flex items-center gap-2 rounded-box px-1 py-1.5 hover:bg-base-200">
-              <div className="relative">
-                <Avatar user={user} />
-                <span
-                  aria-hidden="true"
-                  className="absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full bg-success ring-2 ring-base-100"
-                />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm leading-tight">
-                  {user.name}
-                  {user.id === currentUserId && <span className="text-base-content/50"> (you)</span>}
-                </p>
-                <p className="flex items-center gap-1 text-xs text-base-content/60">
-                  {facilitator && <span className="badge badge-xs badge-primary">Facilitator</span>}
-                  {stage === "idea-generation" && typing.includes(user.id) && <span>typing…</span>}
-                  {stage === "voting" &&
-                    (votes >= VOTE_LIMIT ? (
-                      <span className="text-success">
-                        <span className="hero-check-circle-micro size-3.5 align-[-3px]" aria-hidden="true" /> votes in
-                      </span>
-                    ) : (
-                      <span>
-                        {votes}/{VOTE_LIMIT} votes
-                      </span>
-                    ))}
-                </p>
-              </div>
-              {isFacilitator && !facilitator && (
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-xs opacity-60 group-hover:opacity-100 focus-visible:opacity-100"
-                  onClick={() => setHandOffTo(user)}
-                  aria-label={`Make ${user.name} the facilitator`}
-                  title="Make facilitator"
-                >
-                  <span className="hero-arrows-right-left size-4" aria-hidden="true" />
-                </button>
-              )}
-            </li>
-          )
-        })}
+      <ul aria-labelledby={headingId} className="space-y-1">
+        {contributors.map(({ user, online }) => (
+          <UserRow key={user.id} user={user} online={online} onHandOff={setHandOffTo} />
+        ))}
       </ul>
       <ConfirmDialog
         open={handOffTo != null}
@@ -99,6 +54,64 @@ export function UserList() {
         yourself.
       </ConfirmDialog>
     </section>
+  )
+}
+
+/** One participant. Offline rows are dimmed, have no online dot, and can't be handed facilitation. */
+function UserRow({ user, online, onHandOff }: { user: User; online: boolean; onHandOff: (user: User) => void }) {
+  const retro = useAppSelector(selectRetro)
+  const currentUserId = useAppSelector(selectCurrentUserId)
+  const isFacilitator = useAppSelector(selectIsFacilitator)
+  const typing = useAppSelector(selectTypingUserIds)
+  const voteCounts = useAppSelector(selectVoteCountsByUser)
+
+  const stage = retro?.stage
+  const facilitator = user.id === retro?.facilitator_id
+  const votes = voteCounts[user.id] ?? 0
+
+  return (
+    <li className="group flex items-center gap-2 rounded-box px-1 py-1.5 hover:bg-base-200">
+      <div className={`relative ${online ? "" : "opacity-50 grayscale"}`}>
+        <Avatar user={user} />
+        {online && (
+          <span
+            aria-hidden="true"
+            className="absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full bg-success ring-2 ring-base-100"
+          />
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className={`truncate text-sm leading-tight ${online ? "" : "text-base-content/60"}`}>
+          {user.name}
+          {user.id === currentUserId && <span className="text-base-content/50"> (you)</span>}
+        </p>
+        <p className="flex items-center gap-1 text-xs text-base-content/60">
+          {facilitator && <span className="badge badge-xs badge-primary">Facilitator</span>}
+          {online && stage === "idea-generation" && typing.includes(user.id) && <span>typing…</span>}
+          {stage === "voting" &&
+            (votes >= VOTE_LIMIT ? (
+              <span className="text-success">
+                <span className="hero-check-circle-micro size-3.5 align-[-3px]" aria-hidden="true" /> votes in
+              </span>
+            ) : (
+              <span>
+                {votes}/{VOTE_LIMIT} votes
+              </span>
+            ))}
+        </p>
+      </div>
+      {online && isFacilitator && !facilitator && (
+        <button
+          type="button"
+          className="btn btn-ghost btn-xs opacity-60 group-hover:opacity-100 focus-visible:opacity-100"
+          onClick={() => onHandOff(user)}
+          aria-label={`Make ${user.name} the facilitator`}
+          title="Make facilitator"
+        >
+          <span className="hero-arrows-right-left size-4" aria-hidden="true" />
+        </button>
+      )}
+    </li>
   )
 }
 

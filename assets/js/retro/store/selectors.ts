@@ -136,6 +136,38 @@ export const selectPresentUsers = createSelector(
       }),
 )
 
+export interface Contributor {
+  user: User
+  online: boolean
+}
+
+/**
+ * Everyone online plus anyone who left a mark on the retro (wrote an idea or action item, voted,
+ * owns an action item, or facilitates it). Online first, then by name (id breaks ties). People
+ * who only looked in and left are excluded.
+ */
+export const selectContributors = createSelector(
+  [selectOnlineUserIds, selectUsersById, selectAllIdeas, selectAllVotes, selectRetro],
+  (onlineIds, users, ideas, votes, retro): Contributor[] => {
+    const online = new Set(onlineIds)
+    const ids = new Set(onlineIds)
+    for (const idea of ideas) {
+      ids.add(idea.user_id)
+      if (idea.assignee_id != null) ids.add(idea.assignee_id)
+    }
+    for (const vote of votes) ids.add(vote.user_id)
+    if (retro?.facilitator_id != null) ids.add(retro.facilitator_id)
+    return [...ids]
+      .map((id) => users[id])
+      .filter((user): user is User => user != null)
+      .map((user) => ({ user, online: online.has(user.id) }))
+      .sort(
+        (a, b) =>
+          Number(b.online) - Number(a.online) || a.user.name.localeCompare(b.user.name) || a.user.id - b.user.id,
+      )
+  },
+)
+
 export const selectTypingUserIds = (state: RootState) => state.presence.typingUserIds
 
 /** True once every online participant has spent all their votes. */

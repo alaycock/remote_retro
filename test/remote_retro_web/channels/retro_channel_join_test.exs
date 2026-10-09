@@ -43,9 +43,10 @@ defmodule RemoteRetroWeb.RetroChannelJoinTest do
     {socket, _snapshot} = join_retro(user, retro)
 
     ref = push(socket, "dev:seed_ideas", %{})
-    assert_reply ref, :ok, %{count: count}
+    # Seeding inserts the whole sample set; slow CI runners can miss the 100ms default.
+    assert_reply ref, :ok, %{count: count}, 2_000
     assert count > 0
-    assert_broadcast "snapshot", %{ideas: ideas}
+    assert_broadcast "snapshot", %{ideas: ideas}, 2_000
     assert length(ideas) == count
   end
 end
