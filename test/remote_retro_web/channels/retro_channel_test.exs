@@ -388,7 +388,8 @@ defmodule RemoteRetroWeb.RetroChannelTest do
                    %{reason: "invalid"}
 
       assert_reply push(socket, "timer:command", %{"command" => "pause"}), :error, %{
-        reason: "timer_changed"
+        reason: "timer_changed",
+        timer: %{status: "idle"}
       }
 
       Repo.update!(Ecto.Changeset.change(retro, stage: "action-items"))

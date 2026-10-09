@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { type ReactNode, useEffect, useRef, useState } from "react"
 import { playChime, primeChime } from "../chime"
 import { useAppDispatch, useAppSelector } from "../store/hooks"
 import { selectIsFacilitator, selectStage, selectTimer } from "../store/selectors"
@@ -14,11 +14,11 @@ const STEP_MS = 60_000
 /** +/- update instantly; the final duration is sent once clicking pauses for this long. */
 const ADJUST_DEBOUNCE_MS = 400
 
+/** Always `MM:SS`, so the width never changes as the minutes tick over (with tabular digits). */
 export function formatTime(ms: number): string {
   const total = Math.ceil(ms / 1000)
-  const minutes = Math.floor(total / 60)
-  const seconds = total % 60
-  return `${minutes}:${seconds.toString().padStart(2, "0")}`
+  const pad = (n: number) => n.toString().padStart(2, "0")
+  return `${pad(Math.floor(total / 60))}:${pad(total % 60)}`
 }
 
 /** Remaining ms on this client's clock; ticks while running. */
@@ -49,7 +49,6 @@ export function StageTimer() {
   const timer = useAppSelector(selectTimer)
   const isFacilitator = useAppSelector(selectIsFacilitator)
   const remaining = useRemaining(timer)
-  const [pending, setPending] = useState(false)
   // The duration the facilitator is dialling in with +/-, shown immediately and sent debounced.
   const [draftMs, setDraftMs] = useState<number | null>(null)
   const draftTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -78,14 +77,8 @@ export function StageTimer() {
   const status = timer.status === "running" && remaining <= 0 ? "done" : timer.status
   if (!isFacilitator && status === "idle") return null
 
-  const send = async (command: TimerCommand) => {
-    setPending(true)
-    try {
-      await dispatch(commandTimer(command))
-    } finally {
-      setPending(false)
-    }
-  }
+  // Optimistic (see `commandTimer`), so buttons never wait on the server.
+  const send = (command: TimerCommand) => void dispatch(commandTimer(command))
 
   const sendDraft = (ms: number) => {
     clearTimeout(draftTimer.current)
@@ -108,7 +101,7 @@ export function StageTimer() {
   const start = () => {
     // Send a still-debouncing duration first; the channel handles pushes in order.
     if (draftMs != null && draftTimer.current !== undefined) sendDraft(draftMs)
-    void send({ command: "start" })
+    send({ command: "start" })
   }
 
   const done = status === "done"
@@ -138,7 +131,7 @@ export function StageTimer() {
         aria-hidden="true"
       >
         <span className={`${done ? "hero-bell-micro" : "hero-clock-micro"} size-4 opacity-70`} />
-        {done ? "0:00" : time}
+        {done ? "00:00" : time}
       </span>
       {isFacilitator && status === "idle" && (
         <TimerButton
@@ -149,42 +142,49 @@ export function StageTimer() {
         />
       )}
       {isFacilitator && status === "running" && (
-        <TimerButton
-          icon="hero-pause-micro"
-          label="Pause timer"
-          disabled={pending}
-          onClick={() => send({ command: "pause" })}
-        />
+        <TimerButton icon={<PauseGlyph />} label="Pause timer" onClick={() => send({ command: "pause" })} />
       )}
       {isFacilitator && (status === "idle" || status === "paused") && (
         <TimerButton
-          icon="hero-play-micro"
+          icon={<PlayGlyph />}
           label={status === "paused" ? "Resume timer" : "Start timer"}
-          disabled={pending}
           onClick={start}
         />
       )}
       {isFacilitator && status !== "idle" && (
-        <TimerButton
-          icon="hero-stop-micro"
-          label="Stop and reset timer"
-          disabled={pending}
-          onClick={() => send({ command: "reset" })}
-        />
+        <TimerButton icon={<StopGlyph />} label="Stop and reset timer" onClick={() => send({ command: "reset" })} />
       )}
     </div>
   )
 }
 
+// Transport glyphs drawn to share one optical box (10px tall, centred in 16), unlike the stock
+// micro icons, whose 12px pause bars look heavier and off-centre next to the 10px stop square.
+const glyph = (children: ReactNode) => (
+  <svg viewBox="0 0 16 16" fill="currentColor" className="size-4" aria-hidden="true">
+    {children}
+  </svg>
+)
+const PauseGlyph = () =>
+  glyph(
+    <>
+      <rect x="4" y="3" width="3" height="10" rx="1" />
+      <rect x="9" y="3" width="3" height="10" rx="1" />
+    </>,
+  )
+// A triangle's visual centre sits right of its box's left edge, so it's nudged right to look centred.
+const PlayGlyph = () => glyph(<path d="M5 3.9a1 1 0 0 1 1.52-.85l6.2 4.1a1 1 0 0 1 0 1.7l-6.2 4.1A1 1 0 0 1 5 12.1Z" />)
+const StopGlyph = () => glyph(<rect x="3.5" y="3.5" width="9" height="9" rx="1.5" />)
+
 function TimerButton({
   icon,
   label,
-  disabled,
+  disabled = false,
   onClick,
 }: {
-  icon: string
+  icon: ReactNode
   label: string
-  disabled: boolean
+  disabled?: boolean
   onClick: () => void
 }) {
   return (
@@ -196,7 +196,7 @@ function TimerButton({
       aria-label={label}
       title={label}
     >
-      <span className={`${icon} size-4`} aria-hidden="true" />
+      {typeof icon === "string" ? <span className={`${icon} size-4`} aria-hidden="true" /> : icon}
     </button>
   )
 }

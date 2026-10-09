@@ -107,6 +107,8 @@ export const timerSlice = createSlice({
       reducer: (_state, action: PayloadAction<TimerSliceState>) => action.payload,
       prepare: (timer: TimerState) => ({ payload: { ...timer, receivedAt: performance.now() } }),
     },
+    /** Puts back an earlier state as-is (keeping its `receivedAt`), e.g. after a failed push. */
+    timerRestored: (_state, action: PayloadAction<TimerSliceState>) => action.payload,
   },
   extraReducers: (builder) =>
     builder.addMatcher(isSnapshot, (_state, action) =>
@@ -155,5 +157,5 @@ export const { groupUpserted, groupsReplaced } = groupsSlice.actions
 export const { voteAdded, voteRemoved } = votesSlice.actions
 export const { userUpserted } = usersSlice.actions
 export const { presenceSynced, userTyping } = presenceSlice.actions
-export const { timerUpdated } = timerSlice.actions
+export const { timerUpdated, timerRestored } = timerSlice.actions
 export const { currentUserSet, devToolsEnabled, connectedChanged, toastShown, toastDismissed } = uiSlice.actions

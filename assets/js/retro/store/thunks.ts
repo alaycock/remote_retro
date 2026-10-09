@@ -4,11 +4,13 @@ import type { Category, Group, Idea, Retro, Stage, TimerCommand, TimerState, Vot
 import { createAppAsyncThunk } from "./hooks"
 import type { AppDispatch } from "./index"
 import { selectMyVotesLeft } from "./selectors"
+import type { TimerSliceState } from "./slices"
 import {
   groupUpserted,
   ideaRemoved,
   retroUpdated,
   ideaUpserted,
+  timerRestored,
   timerUpdated,
   toastShown,
   voteAdded,
@@ -256,14 +258,43 @@ export const regroupIdeas = createAppAsyncThunk("ai/regroup", async (_: void, { 
   }
 })
 
+/** What a timer command will do, so the view can change before the server confirms it. */
+export function predictTimer(timer: TimerSliceState, command: TimerCommand, now: number): TimerState {
+  const remaining =
+    timer.status === "running" ? Math.max(0, timer.remaining_ms - (now - timer.receivedAt)) : timer.remaining_ms
+  switch (command.command) {
+    case "start":
+      return {
+        ...timer,
+        status: "running",
+        remaining_ms: timer.status === "paused" ? timer.remaining_ms : timer.duration_ms,
+      }
+    case "pause":
+      return { ...timer, status: "paused", remaining_ms: remaining }
+    case "reset":
+      return { ...timer, status: "idle", remaining_ms: timer.duration_ms }
+    case "set_minutes":
+      return { ...timer, duration_ms: command.minutes * 60_000, remaining_ms: command.minutes * 60_000 }
+  }
+}
+
+/**
+ * Applies the command optimistically, then takes the server's state: its reply on success, or the
+ * current timer it sends back with an error. If the push never got an answer, the view reverts.
+ */
 export const commandTimer = createAppAsyncThunk(
   "timer/command",
-  async (command: TimerCommand, { dispatch, extra, rejectWithValue }) => {
+  async (command: TimerCommand, { dispatch, getState, extra, rejectWithValue }) => {
+    const before = getState().timer
+    if (before) dispatch(timerUpdated(predictTimer(before, command, performance.now())))
     try {
       const { timer } = await extra.channel.push<"timer:command", { timer: TimerState }>("timer:command", command)
       dispatch(timerUpdated(timer))
       return timer
     } catch (error) {
+      const serverTimer = error instanceof PushError ? (error.details.timer as TimerState | undefined) : undefined
+      if (serverTimer) dispatch(timerUpdated(serverTimer))
+      else if (before) dispatch(timerRestored(before))
       return rejectWithValue(report(dispatch, error, "Couldn't update the timer."))
     }
   },

@@ -161,7 +161,11 @@ defmodule RemoteRetroWeb.RetroChannel do
       broadcast!(socket, "timer:updated", %{timer: timer})
       Reply.ok(socket, %{timer: timer})
     else
-      error -> Reply.error(socket, error)
+      error ->
+        # Clients update optimistically; the current timer lets them snap back to the truth.
+        {:reply, {:error, payload}, socket} = Reply.error(socket, error)
+        timer = RemoteRetro.Timer.view(retro(socket))
+        {:reply, {:error, Map.put(payload, :timer, timer)}, socket}
     end
   end
 
