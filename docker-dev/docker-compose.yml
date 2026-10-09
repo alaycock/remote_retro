@@ -20,7 +20,8 @@ services:
   # Dev uses it when DEV_DATABASE_URL is set in ../env.sh; tests always use `db`.
   staging-db:
     image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.25.4
-    command: ["--address", "0.0.0.0", "--port", "5432", "hb-remote-retro:us-central1:remote-retro-db"]
+    # Instance from docker-dev/.env (written by deploy/setup-staging.sh).
+    command: ["--address", "0.0.0.0", "--port", "5432", "${STAGING_DB_INSTANCE:-hb-remote-retro:us-central1:remote-retro-db}"]
     environment:
       GOOGLE_APPLICATION_CREDENTIALS: /gcloud/application_default_credentials.json
     volumes:

@@ -3,18 +3,11 @@
 # Runs inside the gcloud container via deploy/run.sh; see deploy/README.md.
 set -euo pipefail
 
-PROJECT="${PROJECT:-hb-remote-retro}"
-REGION="${REGION:-us-central1}"
-SERVICE="${SERVICE:-remote-retro}"
-SQL_INSTANCE="${SQL_INSTANCE:-remote-retro-db}"
-SQL_TIER="${SQL_TIER:-db-f1-micro}"
-DB_NAME="remote_retro"
-DB_USER="remote_retro"
-REPO="remote-retro"
-SA_NAME="remote-retro-run"
+# shellcheck source=deploy/config.sh
+source "$(dirname "$0")/config.sh"
 
-# Production OAuth client id/secret come from deploy/env.prod.sh (gitignored, never
-# uploaded) — deliberately not the dev env.sh. See deploy/env.prod.sh.example.
+# Production OAuth client id/secret (and optionally SendGrid) come from deploy/env.prod.sh
+# (gitignored, never uploaded) — deliberately not the dev env.sh. See deploy/env.prod.sh.example.
 # shellcheck disable=SC1091
 [ -f deploy/env.prod.sh ] && source deploy/env.prod.sh
 : "${REMOTE_RETRO_GOOGLE_OAUTH_CLIENT_ID:?set in deploy/env.prod.sh}"
@@ -23,8 +16,13 @@ SA_NAME="remote-retro-run"
 gcloud config set project "$PROJECT" --quiet >/dev/null
 gcloud config set run/region "$REGION" --quiet >/dev/null
 PROJECT_NUMBER=$(gcloud projects describe "$PROJECT" --format='value(projectNumber)')
+# OAuth client ids start with the number of the project that owns them; a client from
+# another project would sign people in against the wrong consent screen (or fail).
+case "$REMOTE_RETRO_GOOGLE_OAUTH_CLIENT_ID" in
+  "$PROJECT_NUMBER"-*) ;;
+  *) echo "WARNING: the OAuth client in deploy/env.prod.sh belongs to another project (not $PROJECT_NUMBER)." >&2 ;;
+esac
 SA="$SA_NAME@$PROJECT.iam.gserviceaccount.com"
-CONN="$PROJECT:$REGION:$SQL_INSTANCE"
 HOST="$SERVICE-$PROJECT_NUMBER.$REGION.run.app"
 IMAGE="$REGION-docker.pkg.dev/$PROJECT/$REPO/app:$(date +%Y%m%d-%H%M%S)"
 
@@ -44,6 +42,13 @@ secret() { # secret NAME VALUE  (creates, or adds a version only if the value ch
 step "Enabling APIs"
 gcloud services enable run.googleapis.com sqladmin.googleapis.com artifactregistry.googleapis.com \
   cloudbuild.googleapis.com secretmanager.googleapis.com aiplatform.googleapis.com iam.googleapis.com
+
+step "Cloud Build service account"
+# Newer organizations stop default service accounts from getting broad roles automatically,
+# which leaves `gcloud builds submit` unable to push images; grant the build role explicitly.
+BUILD_SA=$(gcloud builds get-default-service-account --format='value(serviceAccountEmail)' | sed 's#.*/##')
+gcloud projects add-iam-policy-binding "$PROJECT" --member="serviceAccount:$BUILD_SA" \
+  --role=roles/cloudbuild.builds.builder --condition=None >/dev/null
 
 step "Service account $SA"
 gcloud iam service-accounts describe "$SA" >/dev/null 2>&1 ||
@@ -88,6 +93,15 @@ fi
 secret remote-retro-secret-key-base "$SECRET_KEY_BASE"
 secret remote-retro-oauth-client-secret "$REMOTE_RETRO_GOOGLE_OAUTH_CLIENT_SECRET"
 
+# Optional: action-item emails. Without a key they're only logged.
+ENV_VARS="PHX_HOST=$HOST,DB_SOCKET_DIR=/cloudsql/$CONN,POOL_SIZE=5,GCP_PROJECT=$PROJECT,GCP_LOCATION=global,REMOTE_RETRO_GOOGLE_OAUTH_CLIENT_ID=$REMOTE_RETRO_GOOGLE_OAUTH_CLIENT_ID,REMOTE_RETRO_GOOGLE_OAUTH_REDIRECT_URI=https://$HOST/auth/google/callback"
+SECRETS="DATABASE_URL=remote-retro-database-url:latest,SECRET_KEY_BASE=remote-retro-secret-key-base:latest,REMOTE_RETRO_GOOGLE_OAUTH_CLIENT_SECRET=remote-retro-oauth-client-secret:latest"
+if [ -n "${SENDGRID_API_KEY:-}" ]; then
+  secret remote-retro-sendgrid-api-key "$SENDGRID_API_KEY"
+  SECRETS="$SECRETS,SENDGRID_API_KEY=remote-retro-sendgrid-api-key:latest"
+fi
+# MAIL_FROM contains commas/quotes in its display-name form, so it's passed on its own below.
+
 step "Building $IMAGE on Cloud Build"
 gcloud builds submit --tag "$IMAGE" .
 
@@ -96,8 +110,11 @@ gcloud run deploy "$SERVICE" --image="$IMAGE" --service-account="$SA" \
   --add-cloudsql-instances="$CONN" \
   --min-instances=1 --max-instances=1 --session-affinity --timeout=3600 \
   --cpu=1 --memory=512Mi --allow-unauthenticated \
-  --set-env-vars="PHX_HOST=$HOST,DB_SOCKET_DIR=/cloudsql/$CONN,POOL_SIZE=5,GCP_PROJECT=$PROJECT,GCP_LOCATION=global,REMOTE_RETRO_GOOGLE_OAUTH_CLIENT_ID=$REMOTE_RETRO_GOOGLE_OAUTH_CLIENT_ID,REMOTE_RETRO_GOOGLE_OAUTH_REDIRECT_URI=https://$HOST/auth/google/callback" \
-  --set-secrets="DATABASE_URL=remote-retro-database-url:latest,SECRET_KEY_BASE=remote-retro-secret-key-base:latest,REMOTE_RETRO_GOOGLE_OAUTH_CLIENT_SECRET=remote-retro-oauth-client-secret:latest"
+  --set-env-vars="$ENV_VARS" --set-secrets="$SECRETS"
+if [ -n "${MAIL_FROM:-}" ]; then
+  # `^|^` switches gcloud's list delimiter so commas in the value survive.
+  gcloud run services update "$SERVICE" --quiet --update-env-vars="^|^MAIL_FROM=$MAIL_FROM"
+fi
 
 step "Done"
 echo "URL:          https://$HOST"

@@ -4,14 +4,11 @@
 # Run via: deploy/run.sh ./deploy/setup-github.sh
 set -euo pipefail
 
-PROJECT="${PROJECT:-hb-remote-retro}"
-REGION="${REGION:-us-central1}"
-GITHUB_REPO="${GITHUB_REPO:-alaycock/remote_retro}"
-POOL="github"
-PROVIDER="github-oidc"
-DEPLOYER="remote-retro-deployer"
-RUNTIME_SA="remote-retro-run@$PROJECT.iam.gserviceaccount.com"
-REPO="remote-retro"
+# shellcheck source=deploy/config.sh
+source "$(dirname "$0")/config.sh"
+POOL="$WIF_POOL"
+PROVIDER="$WIF_PROVIDER"
+RUNTIME_SA="$SA_NAME@$PROJECT.iam.gserviceaccount.com"
 
 gcloud config set project "$PROJECT" --quiet >/dev/null
 PROJECT_NUMBER=$(gcloud projects describe "$PROJECT" --format='value(projectNumber)')
@@ -46,6 +43,10 @@ gcloud iam service-accounts add-iam-policy-binding "$DEPLOYER_SA" --role=roles/i
   --member="principalSet://iam.googleapis.com/projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/$POOL/attribute.repository/$GITHUB_REPO" \
   >/dev/null
 
-echo "==> Done"
-echo "workload_identity_provider: projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/$POOL/providers/$PROVIDER"
-echo "service_account:            $DEPLOYER_SA"
+echo "==> Done. GitHub repository variables for .github/workflows/deploy.yml"
+echo "    (deploy/bootstrap.sh sets these with gh; or Settings → Secrets and variables → Actions → Variables):"
+echo "GCP_PROJECT=$PROJECT"
+echo "GCP_REGION=$REGION"
+echo "GCP_WIF_PROVIDER=projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/$POOL/providers/$PROVIDER"
+echo "GCP_DEPLOYER_SA=$DEPLOYER_SA"
+echo "APP_URL=https://$SERVICE-$PROJECT_NUMBER.$REGION.run.app"

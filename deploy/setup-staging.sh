@@ -4,15 +4,15 @@
 # by writing DEV_DATABASE_URL into the gitignored env.sh.
 #
 # Run from the repo root on the host: deploy/setup-staging.sh
-# Needs: Docker, and gcloud signed in via deploy/run.sh (personal account with access to
-# hb-remote-retro); ~/.config/gcloud-remote-retro ADC for the Cloud SQL proxy.
+# Needs: Docker, and gcloud signed in via deploy/run.sh (an account with access to the
+# project); ~/.config/gcloud-remote-retro ADC for the Cloud SQL proxy.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-PROJECT="${PROJECT:-hb-remote-retro}"
-CONN="$PROJECT:us-central1:remote-retro-db"
-DB="remote_retro_staging"
-ROLE="remote_retro_staging"
+# shellcheck source=deploy/config.sh
+source deploy/config.sh
+DB="$STAGING_DB"
+ROLE="$STAGING_DB"
 SECRET="remote-retro-staging-db-password"
 NET="rr-staging-setup"
 PROXY_IMAGE="gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.25.4"
@@ -82,5 +82,7 @@ if grep -q '^export DEV_DATABASE_URL=' env.sh; then
 else
   printf '\n# Local dev uses the shared staging database (deploy/setup-staging.sh)\nexport DEV_DATABASE_URL=%s\n' "$url" >> env.sh
 fi
-echo "==> Done. Wrote DEV_DATABASE_URL to env.sh."
+# docker-dev's staging-db proxy reads the instance from docker-dev/.env (gitignored).
+printf 'STAGING_DB_INSTANCE=%s\n' "$CONN" > docker-dev/.env
+echo "==> Done. Wrote DEV_DATABASE_URL to env.sh and STAGING_DB_INSTANCE to docker-dev/.env."
 echo "    Next: cd docker-dev && docker compose up -d --force-recreate app staging-db && docker compose exec app mix ecto.migrate"
