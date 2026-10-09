@@ -43,14 +43,15 @@ defmodule RemoteRetro.RetrosStageTest do
     assert Retros.get_retro!(retro.id).stage == "idea-generation"
   end
 
-  test "entering grouping places ideas, syncs groups and starts AI grouping", %{facilitator: f} do
-    retro = retro_fixture(f, %{stage: "idea-generation"})
-    idea_fixture(retro, f)
-    idea_fixture(retro, f, %{category: "sad"})
+  test "entering grouping places ideas, syncs groups and starts AI grouping" do
+    facilitator = highbeam_user_fixture()
+    retro = retro_fixture(facilitator, %{stage: "idea-generation"})
+    idea_fixture(retro, facilitator)
+    idea_fixture(retro, facilitator, %{category: "sad"})
     id = retro.id
     expect(RunnerMock, :start, fn :grouping, ^id -> :ok end)
 
-    assert {:ok, _} = Retros.change_stage(retro, "grouping", f.id)
+    assert {:ok, _} = Retros.change_stage(retro, "grouping", facilitator.id)
     ideas = Ideas.list_ideas(retro.id)
     assert Enum.all?(ideas, &(&1.x && &1.group_id))
     assert length(Groups.list_groups(retro.id)) == 2
@@ -87,10 +88,18 @@ defmodule RemoteRetro.RetrosStageTest do
     group = group_fixture(retro)
     idea_fixture(retro, f, %{x: 0.0, y: 0.0, group_id: group.id})
     vote = vote_fixture(group, f)
-    stub(RunnerMock, :start, fn _, _ -> :skipped end)
 
     assert {:ok, _} = Retros.change_stage(retro, "grouping", f.id)
     assert Repo.reload(vote)
+  end
+
+  test "a facilitator who isn't allowed to use AI still changes stage, without starting AI" do
+    facilitator = user_fixture(%{"email" => "ada@gmail.com", "email_verified" => true})
+    retro = retro_fixture(facilitator, %{stage: "idea-generation"})
+    idea_fixture(retro, facilitator)
+    idea_fixture(retro, facilitator, %{category: "sad"})
+
+    assert {:ok, %{stage: "grouping"}} = Retros.change_stage(retro, "grouping", facilitator.id)
   end
 
   test "closing without action items and re-opening have no side effects", %{facilitator: f} do

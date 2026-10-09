@@ -32,12 +32,22 @@ config :remote_retro, :google_oauth,
       "http://localhost:4000/auth/google/callback"
     )
 
-# Vertex AI Gemini (plan 3). AI features are off unless GCP_PROJECT is set.
+# Vertex AI Gemini. AI features are off unless GCP_PROJECT is set, and even then
+# only accounts in AI_ALLOWED_DOMAINS may trigger them (see RemoteRetro.AI.Access).
+# Default is the Highbeam Workspace domain. An empty value allows nobody.
+allowed_domains =
+  "AI_ALLOWED_DOMAINS"
+  |> System.get_env("highbeam.co")
+  |> String.split(",", trim: true)
+  |> Enum.map(&(&1 |> String.trim() |> String.trim_leading("@") |> String.downcase()))
+  |> Enum.reject(&(&1 == ""))
+
 config :remote_retro, :ai,
   enabled: System.get_env("GCP_PROJECT") not in [nil, ""],
   project: System.get_env("GCP_PROJECT"),
   location: System.get_env("GCP_LOCATION", "global"),
-  model: System.get_env("GEMINI_MODEL", "gemini-2.5-flash")
+  model: System.get_env("GEMINI_MODEL", "gemini-2.5-flash"),
+  allowed_domains: allowed_domains
 
 if mail_from = System.get_env("MAIL_FROM") do
   config :remote_retro, :mail_from, mail_from

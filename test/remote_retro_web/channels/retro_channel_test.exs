@@ -295,11 +295,12 @@ defmodule RemoteRetroWeb.RetroChannelTest do
       }
     end
 
-    test "entering grouping calls the AI runner from the channel", %{facilitator: f} do
-      retro = retro_fixture(f, %{stage: "idea-generation"})
+    test "entering grouping calls the AI runner from the channel" do
+      facilitator = highbeam_user_fixture()
+      retro = retro_fixture(facilitator, %{stage: "idea-generation"})
       id = retro.id
       expect(RunnerMock, :start, fn :grouping, ^id -> :ok end)
-      socket = room(f, retro)
+      socket = room(facilitator, retro)
 
       assert_reply push(socket, "retro:stage", %{"stage" => "grouping"}), :ok, _
     end
