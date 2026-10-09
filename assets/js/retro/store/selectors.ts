@@ -136,6 +136,28 @@ export const selectPresentUsers = createSelector(
       }),
 )
 
+/**
+ * Participants who aren't online but left a mark on the retro (wrote an idea or action item,
+ * voted, own an action item, or facilitate it), alphabetical. People who only looked in are left out.
+ */
+export const selectAbsentContributors = createSelector(
+  [selectOnlineUserIds, selectUsersById, selectAllIdeas, selectAllVotes, selectRetro],
+  (onlineIds, users, ideas, votes, retro): User[] => {
+    const contributed = new Set<number>()
+    for (const idea of ideas) {
+      contributed.add(idea.user_id)
+      if (idea.assignee_id != null) contributed.add(idea.assignee_id)
+    }
+    for (const vote of votes) contributed.add(vote.user_id)
+    if (retro?.facilitator_id != null) contributed.add(retro.facilitator_id)
+    for (const id of onlineIds) contributed.delete(id)
+    return [...contributed]
+      .map((id) => users[id])
+      .filter((user): user is User => user != null)
+      .sort((a, b) => a.name.localeCompare(b.name))
+  },
+)
+
 export const selectTypingUserIds = (state: RootState) => state.presence.typingUserIds
 
 /** True once every online participant has spent all their votes. */
